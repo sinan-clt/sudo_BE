@@ -1,0 +1,722 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Vehicle Owner</title>
+  <link href="{% static 'assets/img/logo123.jpg' %}" rel="icon">
+  <link href="{% static 'assets/img/apple-touch-icon.png' %}" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="{% static 'assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+
+  <style>
+    /* Bubble Animation Background */
+    @keyframes floatBubble {
+      0% { transform: translateY(0) rotate(0deg); opacity: 0.8; }
+      50% { transform: translateY(-100px) rotate(180deg); opacity: 1; }
+      100% { transform: translateY(-200px) rotate(360deg); opacity: 0; }
+    }
+
+    :root {
+      --primary-color: #4361ee;
+      --secondary-color: #3f37c9;
+      --accent-color: #4895ef;
+      --dark-color: #1b263b;
+      --light-color: #f8f9fa;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 0;
+      color: var(--dark-color);
+      background-color: #f0f8ff;
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Animated Bubbles */
+    .bubbles {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: hidden;
+      top: 0;
+      left: 0;
+    }
+
+    .bubble {
+      position: absolute;
+      bottom: -100px;
+      background: rgba(67, 97, 238, 0.15);
+      border-radius: 50%;
+      animation: floatBubble 10s infinite linear;
+      opacity: 0;
+    }
+
+    /* Generate random bubbles */
+    .bubble:nth-child(1) {
+      width: 40px;
+      height: 40px;
+      left: 10%;
+      animation-delay: 0s;
+      animation-duration: 12s;
+    }
+    .bubble:nth-child(2) {
+      width: 60px;
+      height: 60px;
+      left: 25%;
+      animation-delay: 2s;
+      animation-duration: 15s;
+    }
+    .bubble:nth-child(3) {
+      width: 80px;
+      height: 80px;
+      left: 40%;
+      animation-delay: 1s;
+      animation-duration: 18s;
+    }
+    .bubble:nth-child(4) {
+      width: 50px;
+      height: 50px;
+      left: 55%;
+      animation-delay: 3s;
+      animation-duration: 14s;
+    }
+    .bubble:nth-child(5) {
+      width: 70px;
+      height: 70px;
+      left: 70%;
+      animation-delay: 0.5s;
+      animation-duration: 16s;
+    }
+    .bubble:nth-child(6) {
+      width: 90px;
+      height: 90px;
+      left: 85%;
+      animation-delay: 4s;
+      animation-duration: 20s;
+    }
+
+    /* Sudo Logo */
+    .sudo-header {
+      text-align: center;
+      padding: 15px 0;
+      animation: fadeInDown 0.8s ease-out;
+    }
+
+    .sudo-logo {
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: var(--primary-color);
+      text-decoration: none;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      letter-spacing: 1px;
+    }
+
+    /* Container Styles */
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      animation: fadeInUp 0.8s ease-out;
+    }
+
+    /* Card Styles */
+    .card {
+      background-color: rgba(255, 255, 255, 0.98);
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-title {
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--dark-color);
+      text-align: center;
+      position: relative;
+      padding-bottom: 10px;
+    }
+
+    .card-title:after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 3px;
+      background: var(--primary-color);
+      border-radius: 3px;
+    }
+
+    .vehicle-info {
+      background: rgba(67, 97, 238, 0.1);
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 25px;
+      text-align: center;
+      font-weight: 500;
+      border: 1px solid rgba(67, 97, 238, 0.2);
+    }
+
+    .plate-number {
+      font-size: 1.6rem;
+      letter-spacing: 5px;
+      font-family: monospace;
+      font-weight: 600;
+      color: var(--dark-color);
+      margin-top: 10px;
+    }
+
+    .plate-hash {
+      color: #666;
+      letter-spacing: normal;
+    }
+
+    /* Reason Selection */
+    .reason-list {
+      margin-bottom: 30px;
+    }
+
+    .reason-item {
+      display: flex;
+      align-items: center;
+      padding: 16px 20px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 12px;
+      margin-bottom: 15px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: white;
+    }
+
+    .reason-item:hover {
+      border-color: var(--primary-color);
+      box-shadow: 0 5px 15px rgba(67, 97, 238, 0.1);
+    }
+
+    .reason-item.selected {
+      background-color: rgba(67, 97, 238, 0.1);
+      border-color: var(--primary-color);
+    }
+
+    .reason-icon {
+      margin-right: 15px;
+      font-size: 1.5rem;
+      color: var(--primary-color);
+      transition: transform 0.3s ease;
+    }
+
+    .reason-item.selected .reason-icon {
+      transform: scale(1.1);
+    }
+
+    /* Button Styles */
+    .btn-container {
+      margin-top: 25px;
+      text-align: center;
+    }
+
+    .btn {
+      padding: 16px 32px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      border: none;
+      transition: all 0.3s ease;
+      font-size: 1.1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .btn-primary {
+      background-color: var(--primary-color);
+      color: white;
+      box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+    }
+
+    .btn-primary:hover {
+      background-color: var(--secondary-color);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      display: none;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .modal-content {
+      background-color: white;
+      padding: 30px;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+      transform: translateY(20px);
+      opacity: 0;
+      animation: modalOpen 0.4s ease-out forwards;
+    }
+
+    .modal-title {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      font-weight: 600;
+      color: var(--dark-color);
+      text-align: center;
+    }
+
+    .form-group {
+      margin-bottom: 25px;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 15px;
+      margin-top: 25px;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: var(--dark-color);
+      color: white;
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      z-index: 1050;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      opacity: 0;
+      transition: all 0.4s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast-icon {
+      font-size: 1.5rem;
+    }
+
+    .toast-success {
+      background-color: #2ecc71;
+    }
+
+    .toast-error {
+      background-color: #e74c3c;
+    }
+
+    /* Warning Text */
+    .warning-text {
+      font-size: 0.85rem;
+      color: #666;
+      margin-top: 25px;
+      text-align: center;
+      padding-top: 15px;
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    /* No Vehicle Message */
+    .no-vehicle {
+      text-align: center;
+      padding: 30px;
+      color: #e74c3c;
+      font-weight: 600;
+      background: rgba(231, 76, 60, 0.1);
+      border-radius: 12px;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes modalOpen {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .container {
+        padding: 15px;
+      }
+      
+      .card {
+        padding: 25px 20px;
+      }
+      
+      .card-title {
+        font-size: 1.5rem;
+      }
+      
+      .plate-number {
+        font-size: 1.4rem;
+        letter-spacing: 3px;
+      }
+      
+      .btn {
+        padding: 14px 24px;
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Animated Bubbles Background -->
+  <div class="bubbles">
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+  </div>
+
+  <!-- Sudo Header -->
+  <header class="sudo-header">
+    <a href="https://sudo-70852.firebaseapp.com" class="sudo-logo">Sudo</a>
+  </header>
+
+  <!-- Main Content -->
+  <div class="container">
+    {% if vehicle_data %}
+    <div class="card">
+      <h3 class="card-title">CONTACT VEHICLE OWNER</h3>
+      
+      <div class="vehicle-info">
+        <div id="vehicleModel">{{ vehicle_data.model }}</div>
+        <div class="plate-number">
+          {% with reg_num=vehicle_data.registrationNumber %}
+            {{ reg_num|slice:":-4" }}<span class="plate-hash">####</span>
+          {% endwith %}
+        </div>
+      </div>
+
+      <div>
+        <p style="text-align: center; margin-bottom: 25px; color: #555;">Please select a reason why do you want to contact the owner.</p>
+        
+        <div class="reason-list">
+          <div class="reason-item" onclick="selectReason(this, 'The lights of this car is on.')">
+            <i class="bi bi-lightbulb-fill reason-icon"></i>
+            <span>The lights of this car is on.</span>
+          </div>
+          
+          <div class="reason-item" onclick="selectReason(this, 'The car is in no parking.')">
+            <i class="bi bi-sign-stop-fill reason-icon"></i>
+            <span>The car is in no parking.</span>
+          </div>
+          
+          <div class="reason-item" onclick="selectReason(this, 'The car is getting towed.')">
+            <i class="bi bi-truck-flatbed reason-icon"></i>
+            <span>The car is getting towed.</span>
+          </div>
+          
+          <div class="reason-item" onclick="selectReason(this, 'The window or car is open.')">
+            <i class="bi bi-door-open-fill reason-icon"></i>
+            <span>The window or car is open.</span>
+          </div>
+          
+          <div class="reason-item" onclick="selectReason(this, 'Something wrong with this car.')">
+            <i class="bi bi-exclamation-triangle-fill reason-icon"></i>
+            <span>Something wrong with this car.</span>
+          </div>
+        </div>
+
+        <div class="btn-container">
+          <button class="btn btn-primary" id="notifyBtn">
+            <i class="bi bi-bell-fill"></i>Notify Owner
+          </button>
+        </div>
+
+        <div class="info-text" style="text-align: center; margin-top: 25px; padding-top: 15px; border-top: 1px solid rgba(0, 0, 0, 0.1);">
+          <p style="color: #4361ee; font-weight: 500;">
+            <i class="bi bi-info-circle-fill" style="margin-right: 5px;"></i>
+            Thank you for helping keep our community safe!
+          </p>
+          <p style="font-size: 0.85rem; color: #666; margin-top: 10px;">
+            Learn more about our <a href="https://sudo-70852.firebaseapp.com/#about" style="color: #4361ee; text-decoration: none;">Community Guidelines</a>
+          </p>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="card">
+      <div class="no-vehicle">
+        <i class="bi bi-exclamation-triangle-fill" style="font-size: 2.5rem; margin-bottom: 15px;"></i>
+        <p style="font-size: 1.2rem;">No vehicle registered for this user</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Plate Verification Modal -->
+  <div class="modal-overlay" id="plateModal">
+    <div class="modal-content">
+      <h4 class="modal-title">Verify Vehicle Plate Number</h4>
+      <p style="text-align: center; color: #666; margin-bottom: 20px;">
+        Please enter the last 4 digits of this plate number:
+      </p>
+      
+      <div class="form-group">
+        <div style="text-align: center; margin-bottom: 15px; font-weight: 600; font-size: 1.4rem; letter-spacing: 3px;">
+          {% with reg_num=vehicle_data.registrationNumber %}
+            {{ reg_num|slice:":-4" }}<span style="color: var(--primary-color);"> ####</span>
+          {% endwith %}
+        </div>
+        <input type="text" class="form-control" id="plateDigits" placeholder="Enter last 4 digits" maxlength="4">
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelBtn" style="background: #f1f1f1; color: #333;">Cancel</button>
+        <button class="btn btn-primary" id="confirmBtn">Send Notification</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toastNotification">
+    <i class="bi bi-check-circle-fill toast-icon"></i>
+    <span id="toastMessage">Notification sent successfully!</span>
+  </div>
+
+  <!-- Vendor JS Files -->
+  <script src="{% static 'assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+
+  <script>
+    // DOM Elements
+    const notifyBtn = document.getElementById('notifyBtn');
+    const plateModal = document.getElementById('plateModal');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const confirmBtn = document.getElementById('confirmBtn');
+    const plateDigits = document.getElementById('plateDigits');
+    const toastNotification = document.getElementById('toastNotification');
+    const toastMessage = document.getElementById('toastMessage');
+    
+    // Selected reason and vehicle data
+    let selectedReason = '';
+    const vehicleData = {
+      model: "{{ vehicle_data.model|default:'' }}",
+      registrationNumber: "{{ vehicle_data.registrationNumber|default:'' }}"
+    };
+
+    // Initialize the page
+    document.addEventListener('DOMContentLoaded', function() {
+      // Create additional bubbles for more animation
+      const bubblesContainer = document.querySelector('.bubbles');
+      for (let i = 0; i < 10; i++) {
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        bubble.style.left = Math.random() * 100 + '%';
+        bubble.style.width = (Math.random() * 50 + 20) + 'px';
+        bubble.style.height = bubble.style.width;
+        bubble.style.animationDelay = Math.random() * 5 + 's';
+        bubble.style.animationDuration = (Math.random() * 10 + 10) + 's';
+        bubblesContainer.appendChild(bubble);
+      }
+    });
+
+    // Function to select reason
+    function selectReason(element, reason) {
+      // Remove selected class from all items
+      const reasonItems = document.querySelectorAll('.reason-item');
+      reasonItems.forEach(item => {
+        item.classList.remove('selected');
+      });
+      
+      // Add selected class to clicked item
+      element.classList.add('selected');
+      selectedReason = reason;
+    }
+
+    // Show modal when Notify button is clicked
+    notifyBtn.addEventListener('click', function() {
+      if (!selectedReason) {
+        showToast('Please select a reason first', 'error');
+        return;
+      }
+
+      plateModal.style.display = 'flex';
+    });
+
+    // Hide modal when Cancel button is clicked
+    cancelBtn.addEventListener('click', function() {
+      plateModal.style.display = 'none';
+    });
+
+    // Confirm button click handler
+    confirmBtn.addEventListener('click', function() {
+      const enteredDigits = plateDigits.value.trim();
+      const lastFourDigits = vehicleData.registrationNumber.slice(-4);
+      
+      // Validate plate digits
+      if (enteredDigits !== lastFourDigits) {
+        showToast('Plate number does not match', 'error');
+        return;
+      }
+      
+      // If validation passes, send notification
+      sendNotification(selectedReason, enteredDigits);
+    });
+
+    // Function to show toast notification
+    function showToast(message, type = 'success') {
+      toastNotification.className = 'toast';
+      toastNotification.classList.add(`toast-${type}`);
+      toastMessage.textContent = message;
+      
+      if (type === 'success') {
+        toastNotification.innerHTML = `<i class="bi bi-check-circle-fill toast-icon"></i><span id="toastMessage">${message}</span>`;
+      } else {
+        toastNotification.innerHTML = `<i class="bi bi-exclamation-triangle-fill toast-icon"></i><span id="toastMessage">${message}</span>`;
+      }
+      
+      toastNotification.classList.add('show');
+      
+      setTimeout(() => {
+        toastNotification.classList.remove('show');
+      }, 3000);
+    }
+
+    // Function to send notification to server
+    function sendNotification(reason, plateDigits) {
+      const csrfToken = "{{ csrf_token }}";
+      
+      if (!csrfToken) {
+        console.error('CSRF token not found');
+        showToast('Security error. Please refresh', 'error');
+        return;
+      }
+      
+      // Show loading state
+      confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
+      confirmBtn.disabled = true;
+      
+      fetch('', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+          reason: reason,
+          plate_digits: plateDigits
+        })
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.status === 'success') {
+          showToast(data.message || 'Notification sent successfully!');
+          
+          // Reset form after success
+          const reasonItems = document.querySelectorAll('.reason-item');
+          reasonItems.forEach(item => {
+            item.classList.remove('selected');
+          });
+          selectedReason = '';
+          plateDigits.value = '';
+          plateModal.style.display = 'none';
+        } else {
+          throw new Error(data.message || 'Unknown error occurred');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showToast(error.message || 'Failed to send notification', 'error');
+      })
+      .finally(() => {
+        confirmBtn.innerHTML = 'Send Notification';
+        confirmBtn.disabled = false;
+      });
+    }
+  </script>
+</body>
+</html>

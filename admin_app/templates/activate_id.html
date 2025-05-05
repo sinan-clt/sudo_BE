@@ -1,0 +1,1027 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activate Vehicle QR</title>
+  <link href="{% static 'assets/img/logo123.jpg' %}" rel="icon">
+  <link href="{% static 'assets/img/apple-touch-icon.png' %}" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="{% static 'assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+
+  <style>
+    /* Bubble Animation Background */
+    @keyframes floatBubble {
+      0% { transform: translateY(0) rotate(0deg); opacity: 0.8; }
+      50% { transform: translateY(-100px) rotate(180deg); opacity: 1; }
+      100% { transform: translateY(-200px) rotate(360deg); opacity: 0; }
+    }
+
+    :root {
+      --primary-color: #4361ee;
+      --primary-light: #e0e8ff;
+      --secondary-color: #3f37c9;
+      --accent-color: #4895ef;
+      --success-color: #2ecc71;
+      --danger-color: #e74c3c;
+      --dark-color: #1b263b;
+      --light-color: #f8f9fa;
+      --gray-color: #6c757d;
+      --warning-color: #f39c12;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 0;
+      color: var(--dark-color);
+      background-color: #f0f8ff;
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Welcome Popup Styles */
+    .welcome-popup {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.9);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      opacity: 1;
+      visibility: visible;
+      transition: all 0.5s ease;
+      backdrop-filter: blur(5px);
+    }
+
+    .welcome-popup.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .welcome-content {
+      background: white;
+      border-radius: 20px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+      transform: scale(0.9);
+      transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .welcome-popup.hidden .welcome-content {
+      transform: scale(1);
+    }
+
+    .welcome-header {
+      background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+      padding: 25px;
+      text-align: center;
+      color: white;
+      position: relative;
+    }
+
+    .welcome-icon {
+      font-size: 4rem;
+      margin-bottom: 15px;
+      display: inline-block;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    .welcome-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .welcome-body {
+      padding: 25px;
+      text-align: center;
+    }
+
+    .welcome-text {
+      color: var(--gray-color);
+      margin-bottom: 20px;
+      line-height: 1.6;
+      font-size: 1.1rem;
+    }
+
+    .welcome-features {
+      text-align: left;
+      margin: 25px 0;
+    }
+
+    .welcome-feature {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .feature-icon {
+      color: var(--success-color);
+      margin-right: 10px;
+      font-size: 1.2rem;
+    }
+
+    .welcome-footer {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      padding: 0 25px 25px;
+    }
+
+    .welcome-btn {
+      padding: 12px 30px;
+      border-radius: 50px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      border: none;
+      transition: all 0.3s ease;
+      font-size: 1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-width: 120px;
+    }
+
+    .welcome-btn-primary {
+      background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+      color: white;
+      box-shadow: 0 4px 15px rgba(67, 97, 238, 0.4);
+    }
+
+    .welcome-btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(67, 97, 238, 0.5);
+    }
+
+    .welcome-btn-outline {
+      background-color: transparent;
+      border: 2px solid var(--primary-color);
+      color: var(--primary-color);
+    }
+
+    .welcome-btn-outline:hover {
+      background-color: var(--primary-light);
+    }
+
+    /* Animated Bubbles */
+    .bubbles {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: hidden;
+      top: 0;
+      left: 0;
+    }
+
+    .bubble {
+      position: absolute;
+      bottom: -100px;
+      background: rgba(67, 97, 238, 0.15);
+      border-radius: 50%;
+      animation: floatBubble 10s infinite linear;
+      opacity: 0;
+    }
+
+    /* Sudo Logo */
+    .sudo-header {
+      text-align: center;
+      padding: 15px 0;
+      animation: fadeInDown 0.8s ease-out;
+    }
+
+    .sudo-logo {
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: var(--primary-color);
+      text-decoration: none;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      letter-spacing: 1px;
+    }
+
+    /* Container Styles */
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      animation: fadeInUp 0.8s ease-out;
+    }
+
+    /* Card Styles */
+    .card {
+      background-color: rgba(255, 255, 255, 0.98);
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      border: none;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-title {
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--dark-color);
+      text-align: center;
+      position: relative;
+      padding-bottom: 10px;
+    }
+
+    .card-title:after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 3px;
+      background: var(--primary-color);
+      border-radius: 3px;
+    }
+
+    /* Form Styles */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      font-weight: 500;
+      margin-bottom: 8px;
+      display: block;
+      color: var(--dark-color);
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 12px 15px;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 1rem;
+      transition: all 0.3s;
+      background-color: var(--light-color);
+    }
+
+    .form-control:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+      background-color: white;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      border: none;
+      transition: all 0.3s ease;
+      font-size: 1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background-color: var(--primary-color);
+      color: white;
+      box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+    }
+
+    .btn-primary:hover {
+      background-color: var(--secondary-color);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+    }
+
+    .btn-outline-primary {
+      background-color: transparent;
+      border: 2px solid var(--primary-color);
+      color: var(--primary-color);
+    }
+
+    .btn-outline-primary:hover {
+      background-color: var(--primary-light);
+    }
+
+    .btn-block {
+      display: block;
+      width: 100%;
+    }
+
+    /* Confirmation Popup Styles */
+    .confirmation-popup {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(5px);
+    }
+
+    .confirmation-popup.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .confirmation-content {
+      background: white;
+      border-radius: 20px;
+      width: 90%;
+      max-width: 450px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+      transform: scale(0.9);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .confirmation-popup.active .confirmation-content {
+      transform: scale(1);
+    }
+
+    .confirmation-header {
+      background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+      padding: 25px;
+      text-align: center;
+      color: white;
+      position: relative;
+    }
+
+    .confirmation-icon {
+      font-size: 3.5rem;
+      margin-bottom: 15px;
+      display: inline-block;
+      animation: pulse 1.5s infinite;
+    }
+
+    .confirmation-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .confirmation-body {
+      padding: 25px;
+      text-align: center;
+    }
+
+    .confirmation-text {
+      color: var(--gray-color);
+      margin-bottom: 25px;
+      line-height: 1.6;
+      font-size: 1.1rem;
+    }
+
+    .confirmation-footer {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      padding: 0 25px 25px;
+    }
+
+    .confirmation-btn {
+      padding: 12px 30px;
+      border-radius: 50px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      border: none;
+      transition: all 0.3s ease;
+      font-size: 1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-width: 120px;
+    }
+
+    .confirmation-btn-primary {
+      background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+      color: white;
+      box-shadow: 0 4px 15px rgba(67, 97, 238, 0.4);
+    }
+
+    .confirmation-btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(67, 97, 238, 0.5);
+    }
+
+    .confirmation-btn-outline {
+      background-color: transparent;
+      border: 2px solid var(--primary-color);
+      color: var(--primary-color);
+    }
+
+    .confirmation-btn-outline:hover {
+      background-color: var(--primary-light);
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: var(--dark-color);
+      color: white;
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      z-index: 1050;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      opacity: 0;
+      transition: all 0.4s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast-icon {
+      font-size: 1.5rem;
+    }
+
+    .toast-success {
+      background-color: var(--success-color);
+    }
+
+    .toast-error {
+      background-color: var(--danger-color);
+    }
+
+    .toast-warning {
+      background-color: var(--warning-color);
+    }
+
+    /* Loading Spinner */
+    .spinner-container {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(255, 255, 255, 0.8);
+      z-index: 1200;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .spinner-container.active {
+      display: flex;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid var(--primary-light);
+      border-top-color: var(--primary-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Success Message */
+    .success-message {
+      display: none;
+      text-align: center;
+      padding: 30px;
+    }
+
+    .success-icon {
+      font-size: 4rem;
+      color: var(--success-color);
+      margin-bottom: 20px;
+      animation: pulse 2s infinite;
+    }
+
+    .success-title {
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+      color: var(--dark-color);
+    }
+
+    .success-text {
+      color: var(--gray-color);
+      margin-bottom: 25px;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Error Styling */
+    .is-invalid {
+      border-color: var(--danger-color) !important;
+    }
+
+    .invalid-feedback {
+      width: 100%;
+      margin-top: 0.25rem;
+      font-size: 0.875em;
+      color: var(--danger-color);
+    }
+
+    .form-check-input.is-invalid {
+      border-color: var(--danger-color);
+    }
+
+    .form-check-input.is-invalid ~ .form-check-label {
+      color: var(--danger-color);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .container {
+        padding: 15px;
+      }
+      
+      .card {
+        padding: 25px 20px;
+      }
+      
+      .card-title {
+        font-size: 1.5rem;
+      }
+      
+      .btn {
+        padding: 12px 20px;
+      }
+      
+      .welcome-content, .confirmation-content {
+        width: 95%;
+      }
+      
+      .welcome-title, .confirmation-title {
+        font-size: 1.5rem;
+      }
+      
+      .welcome-footer, .confirmation-footer {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .welcome-btn, .confirmation-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Welcome Popup (shown on first load) -->
+  <div class="welcome-popup" id="welcomePopup">
+    <div class="welcome-content">
+      <div class="welcome-header">
+        <div class="welcome-icon">
+          <i class="bi bi-qr-code-scan"></i>
+        </div>
+        <h2 class="welcome-title">Activate Your Vehicle QR</h2>
+      </div>
+      <div class="welcome-body">
+        <p class="welcome-text">
+          By activating your vehicle's QR code, you'll enable others to contact you when needed. 
+          Complete this simple form to get started.
+        </p>
+        
+        <div class="welcome-features">
+          <div class="welcome-feature">
+            <i class="bi bi-check-circle-fill feature-icon"></i>
+            <span>Receive notifications when your vehicle is scanned</span>
+          </div>
+          <div class="welcome-feature">
+            <i class="bi bi-check-circle-fill feature-icon"></i>
+            <span>Help others contact you about your vehicle</span>
+          </div>
+          <div class="welcome-feature">
+            <i class="bi bi-check-circle-fill feature-icon"></i>
+            <span>Quick and easy activation process</span>
+          </div>
+        </div>
+      </div>
+      <div class="welcome-footer">
+        <button class="welcome-btn welcome-btn-outline" id="cancelWelcome">
+          <i class="bi bi-x-lg"></i> Not Now
+        </button>
+        <button class="welcome-btn welcome-btn-primary" id="continueWelcome">
+          <i class="bi bi-check-lg"></i> Continue
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Animated Bubbles Background -->
+  <div class="bubbles">
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+  </div>
+
+  <!-- Sudo Header -->
+  <header class="sudo-header">
+    <a href="https://sudo-70852.firebaseapp.com" class="sudo-logo">Sudo</a>
+  </header>
+
+  <!-- Main Content -->
+  <div class="container">
+    <div class="card">
+      <h3 class="card-title">ACTIVATE QR</h3>
+      
+      <div id="activationFormContainer">
+        <form id="activationForm">
+          <!-- Vehicle Information -->
+          <div class="form-group">
+            <label for="make" class="form-label">Vehicle Make</label>
+            <input type="text" class="form-control" id="make" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="model" class="form-label">Vehicle Model</label>
+            <input type="text" class="form-control" id="model" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="registrationNumber" class="form-label">Registration Number</label>
+            <input type="text" class="form-control" id="registrationNumber" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="vehicleType" class="form-label">Vehicle Type</label>
+            <select class="form-control" id="vehicleType" required>
+              <option value="Car">Car</option>
+              <option value="Bike">Bike</option>
+              <option value="Bus">Bus</option>
+              <option value="Lorry">Lorry</option>
+              <option value="Truck">Truck</option>
+              <option value="Auto">Auto</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          
+          <!-- Owner Information -->
+          <div class="form-group">
+            <label for="fullName" class="form-label">Full Name</label>
+            <input type="text" class="form-control" id="fullName" value="{{ user_data.fullName|default:'' }}" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="contactNumber" class="form-label">Contact Number</label>
+            <input type="tel" class="form-control" id="contactNumber" value="{{ user_data.contactNumber|default:'' }}" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="emailAddress" class="form-label">Email Address</label>
+            <input type="email" class="form-control" id="emailAddress" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="city" class="form-label">City</label>
+            <input type="text" class="form-control" id="city" value="{{ user_data.city|default:'' }}" required>
+          </div>
+          
+          <div class="form-group form-check">
+            <input type="checkbox" class="form-check-input" id="termsCheck" required>
+            <label class="form-check-label" for="termsCheck">I agree to the terms and conditions</label>
+          </div>
+          
+          <button type="submit" class="btn btn-primary btn-block">
+            <i class="bi bi-check-circle-fill"></i> Activate
+          </button>
+        </form>
+      </div>
+
+      <!-- Success Message (hidden initially) -->
+      <div id="successMessage" class="success-message">
+        <div class="success-icon">
+          <i class="bi bi-check-circle-fill"></i>
+        </div>
+        <h3 class="success-title">Activation Successful!</h3>
+        <p class="success-text">Your vehicle QR code is now active. Others can scan it to contact you.</p>
+        <button class="btn btn-primary" id="continueBtn">
+          <i class="bi bi-arrow-right"></i> Continue
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Popup -->
+  <div class="confirmation-popup" id="confirmationPopup">
+    <div class="confirmation-content">
+      <div class="confirmation-header">
+        <div class="confirmation-icon">
+          <i class="bi bi-qr-code"></i>
+        </div>
+        <h2 class="confirmation-title">Confirm Activation</h2>
+      </div>
+      <div class="confirmation-body">
+        <p class="confirmation-text">
+          By activating your QR code, you agree to receive notifications when someone scans your vehicle's QR code. 
+          This will allow others to contact you about your vehicle when needed.
+        </p>
+      </div>
+      <div class="confirmation-footer">
+        <button class="confirmation-btn confirmation-btn-outline" id="cancelActivation">
+          <i class="bi bi-x-lg"></i> Cancel
+        </button>
+        <button class="confirmation-btn confirmation-btn-primary" id="confirmActivation">
+          <i class="bi bi-check-lg"></i> Activate Now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Spinner -->
+  <div class="spinner-container" id="loadingSpinner">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toastNotification">
+    <i class="bi bi-check-circle-fill toast-icon"></i>
+    <span id="toastMessage">Notification sent successfully!</span>
+  </div>
+
+  <!-- Vendor JS Files -->
+  <script src="{% static 'assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Create additional bubbles for more animation
+      const bubblesContainer = document.querySelector('.bubbles');
+      for (let i = 0; i < 10; i++) {
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        bubble.style.left = Math.random() * 100 + '%';
+        bubble.style.width = (Math.random() * 50 + 20) + 'px';
+        bubble.style.height = bubble.style.width;
+        bubble.style.animationDelay = Math.random() * 5 + 's';
+        bubble.style.animationDuration = (Math.random() * 10 + 10) + 's';
+        bubblesContainer.appendChild(bubble);
+      }
+
+      // DOM Elements
+      const welcomePopup = document.getElementById('welcomePopup');
+      const cancelWelcome = document.getElementById('cancelWelcome');
+      const continueWelcome = document.getElementById('continueWelcome');
+      const activationForm = document.getElementById('activationForm');
+      const confirmationPopup = document.getElementById('confirmationPopup');
+      const cancelActivation = document.getElementById('cancelActivation');
+      const confirmActivation = document.getElementById('confirmActivation');
+      const loadingSpinner = document.getElementById('loadingSpinner');
+      const toastNotification = document.getElementById('toastNotification');
+      const toastMessage = document.getElementById('toastMessage');
+      const activationFormContainer = document.getElementById('activationFormContainer');
+      const successMessage = document.getElementById('successMessage');
+      const continueBtn = document.getElementById('continueBtn');
+      
+      let formData = {};
+
+      // Handle welcome popup actions
+      cancelWelcome.addEventListener('click', function() {
+        welcomePopup.classList.add('hidden');
+        showToast('You can activate your QR code anytime', 'warning');
+      });
+
+      continueWelcome.addEventListener('click', function() {
+        welcomePopup.classList.add('hidden');
+      });
+
+      // Form submission
+      activationForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Clear previous errors
+        document.querySelectorAll('.is-invalid').forEach(el => {
+          el.classList.remove('is-invalid');
+        });
+        document.querySelectorAll('.invalid-feedback').forEach(el => {
+          el.remove();
+        });
+        
+        // Validate form
+        const requiredFields = [
+          'make', 'model', 'registrationNumber', 'vehicleType',
+          'fullName', 'contactNumber', 'emailAddress', 'city'
+        ];
+        
+        let isValid = true;
+        requiredFields.forEach(field => {
+          const element = document.getElementById(field);
+          if (!element.value.trim()) {
+            showFieldError(element, 'This field is required');
+            isValid = false;
+          }
+        });
+        
+        if (!document.getElementById('termsCheck').checked) {
+          showFieldError(document.getElementById('termsCheck'), 'You must accept the terms');
+          isValid = false;
+        }
+        
+        // Validate email format
+        const email = document.getElementById('emailAddress');
+        if (email.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
+          showFieldError(email, 'Enter a valid email address');
+          isValid = false;
+        }
+        
+        if (!isValid) {
+          showToast('Please fill all required fields correctly', 'error');
+          return;
+        }
+        
+        // Prepare data for submission
+        formData = {
+          make: document.getElementById('make').value.trim(),
+          model: document.getElementById('model').value.trim(),
+          registrationNumber: document.getElementById('registrationNumber').value.trim(),
+          vehicleType: document.getElementById('vehicleType').value,
+          fullName: document.getElementById('fullName').value.trim(),
+          contactNumber: document.getElementById('contactNumber').value.trim(),
+          emailAddress: document.getElementById('emailAddress').value.trim(),
+          city: document.getElementById('city').value.trim()
+        };
+        
+        // Show loading spinner
+        loadingSpinner.classList.add('active');
+        
+        // Send data to server
+        fetch('', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify(formData)
+        })
+        .then(response => {
+          if (!response.ok) {
+            return response.json().then(errData => {
+              throw errData;
+            });
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.status === 'success') {
+            // Show success message
+            activationFormContainer.style.display = 'none';
+            successMessage.style.display = 'block';
+            
+            // Redirect after delay if needed
+            if (data.redirect_url) {
+              continueBtn.addEventListener('click', function() {
+                window.location.href = data.redirect_url;
+              });
+            } else {
+              continueBtn.style.display = 'none';
+            }
+          } else {
+            throw data;
+          }
+        })
+        .catch(errorData => {
+          if (errorData.errors) {
+            // Handle field-specific errors
+            Object.keys(errorData.errors).forEach(field => {
+              const element = document.getElementById(field);
+              if (element) {
+                showFieldError(element, errorData.errors[field]);
+              }
+            });
+            showToast(errorData.message || 'Please correct the errors', 'error');
+          } else {
+            showToast(errorData.message || 'Activation failed. Please try again.', 'error');
+          }
+        })
+        .finally(() => {
+          loadingSpinner.classList.remove('active');
+        });
+      });
+
+      // Helper function to show field errors
+      function showFieldError(element, message) {
+        element.classList.add('is-invalid');
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'invalid-feedback';
+        errorDiv.textContent = message;
+        element.parentNode.appendChild(errorDiv);
+      }
+
+      // Helper function to get CSRF token
+      function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
+
+      // Function to show toast notification
+      function showToast(message, type = 'success') {
+        toastNotification.className = 'toast';
+        toastNotification.classList.add(`toast-${type}`);
+        toastMessage.textContent = message;
+        
+        if (type === 'success') {
+          toastNotification.innerHTML = `<i class="bi bi-check-circle-fill toast-icon"></i><span id="toastMessage">${message}</span>`;
+        } else if (type === 'error') {
+          toastNotification.innerHTML = `<i class="bi bi-exclamation-triangle-fill toast-icon"></i><span id="toastMessage">${message}</span>`;
+        } else if (type === 'warning') {
+          toastNotification.innerHTML = `<i class="bi bi-exclamation-circle-fill toast-icon"></i><span id="toastMessage">${message}</span>`;
+        }
+        
+        toastNotification.classList.add('show');
+        
+        setTimeout(() => {
+          toastNotification.classList.remove('show');
+        }, 3000);
+      }
+    });
+  </script>
+</body>
+</html>
