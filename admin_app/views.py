@@ -107,17 +107,18 @@ def generate_qr(request):
     if request.method == 'POST':
         qr_type = request.POST.get('qr_type', 'user')
         qr_data = []
-        base_domain = settings.BASE_DOMAIN  # Set this in your settings.py
+        base_domain = settings.BASE_DOMAIN
         
         if qr_type == 'user':
             count = int(request.POST.get('count', 1))
             
             for _ in range(count):
                 try:
-                    # Generate a unique ID for the QR code
+                    # Generate unique IDs
                     qr_id = base64.urlsafe_b64encode(uuid.uuid4().bytes).decode('utf-8')[:16]
+                    vehicle_id = base64.urlsafe_b64encode(uuid.uuid4().bytes).decode('utf-8')[:12]
                     
-                    # Create QR code data
+                    # Create QR code
                     registration_url = f"{base_domain}/send-notification/{qr_id}/"
                     qr_code = qrcode.make(registration_url)
                     buffer = BytesIO()
@@ -129,7 +130,8 @@ def generate_qr(request):
                         'createdBy': 'admin',
                         'createdDateTime': datetime.datetime.now(tz=datetime.timezone.utc),
                         'isAssigned': False,
-                        'qrId': qr_id
+                        'qrId': qr_id,
+                        'vehicleID': ''  # Add vehicleID reference
                     }
                     
                     db.collection('qrcodes').document(qr_id).set(qr_data_firestore)
@@ -137,6 +139,7 @@ def generate_qr(request):
                     qr_data.append({
                         'type': 'user',
                         'qrId': qr_id,
+                        'vehicleID': '',
                         'qr_code_base64': qr_code_base64
                     })
                     
@@ -144,9 +147,8 @@ def generate_qr(request):
                     return render(request, 'generate_qr.html', {
                         'error': f'Failed to generate QR: {str(e)}'
                     })
-
         else:
-            # External QR generation
+            # External QR generation remains the same
             count = int(request.POST.get('external_count', 1))
             registration_url = f"{base_domain}/register-external-user/"
             
