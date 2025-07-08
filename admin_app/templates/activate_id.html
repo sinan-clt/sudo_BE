@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Activate Vehicle QR</title>
+  <title>Activate Vehicle QR Code | Sudo</title>
   <link href="{% static 'assets/img/logo123.jpg' %}" rel="icon">
   <link href="{% static 'assets/img/apple-touch-icon.png' %}" rel="apple-touch-icon">
 
@@ -701,67 +701,72 @@
   <!-- Main Content -->
   <div class="container">
     <div class="card">
-      <h3 class="card-title">ACTIVATE QR</h3>
+      <h3 class="card-title">ACTIVATE YOUR VEHICLE QR CODE</h3>
       
       <div id="activationFormContainer">
         <form id="activationForm">
           <!-- Vehicle Information -->
           <div class="form-group">
-            <label for="make" class="form-label">Vehicle Make</label>
-            <input type="text" class="form-control" id="make" required>
+            <label for="make" class="form-label">Vehicle Brand (e.g., Toyota, Honda)</label>
+            <input type="text" class="form-control" id="make" placeholder="Enter vehicle brand" required>
           </div>
           
           <div class="form-group">
-            <label for="model" class="form-label">Vehicle Model</label>
-            <input type="text" class="form-control" id="model" required>
+            <label for="model" class="form-label">Vehicle Model (e.g., Camry, Civic)</label>
+            <input type="text" class="form-control" id="model" placeholder="Enter vehicle model" required>
           </div>
           
           <div class="form-group">
-            <label for="registrationNumber" class="form-label">Registration Number</label>
-            <input type="text" class="form-control" id="registrationNumber" required>
+            <label for="registrationNumber" class="form-label">License Plate Number</label>
+            <input type="text" class="form-control" id="registrationNumber" placeholder="Enter license plate number" required>
           </div>
           
           <div class="form-group">
-            <label for="vehicleType" class="form-label">Vehicle Type</label>
+            <label for="vehicleType" class="form-label">Vehicle Category</label>
             <select class="form-control" id="vehicleType" required>
+              <option value="" disabled selected>Select your vehicle type</option>
               <option value="Car">Car</option>
-              <option value="Bike">Bike</option>
-              <option value="Bus">Bus</option>
-              <option value="Lorry">Lorry</option>
+              <option value="Motorcycle">Motorcycle</option>
+              <option value="SUV">SUV</option>
               <option value="Truck">Truck</option>
-              <option value="Auto">Auto</option>
-              <option value="Other">Other</option>
+              <option value="Van">Van</option>
+              <option value="Bus">Bus</option>
+              <option value="Auto Rickshaw">Auto Rickshaw</option>
+              <option value="Other">Other Vehicle Type</option>
             </select>
           </div>
           
           <!-- Owner Information -->
           <div class="form-group">
-            <label for="fullName" class="form-label">Full Name</label>
-            <input type="text" class="form-control" id="fullName" value="{{ user_data.fullName|default:'' }}" required>
+            <label for="fullName" class="form-label">Your Full Name</label>
+            <input type="text" class="form-control" id="fullName" placeholder="Enter your full name" required>
           </div>
           
           <div class="form-group">
-            <label for="contactNumber" class="form-label">Contact Number</label>
-            <input type="tel" class="form-control" id="contactNumber" value="{{ user_data.contactNumber|default:'' }}" required>
+            <label for="contactNumber" class="form-label">Mobile Number</label>
+            <input type="tel" class="form-control" id="contactNumber" placeholder="Enter 10-digit mobile number" required>
           </div>
           
           <div class="form-group">
             <label for="emailAddress" class="form-label">Email Address</label>
-            <input type="email" class="form-control" id="emailAddress" required>
+            <input type="email" class="form-control" id="emailAddress" placeholder="Enter your email address" required>
           </div>
           
           <div class="form-group">
-            <label for="city" class="form-label">City</label>
-            <input type="text" class="form-control" id="city" value="{{ user_data.city|default:'' }}" required>
+            <label for="city" class="form-label">City of Residence</label>
+            <input type="text" class="form-control" id="city" placeholder="Enter your city" required>
           </div>
           
           <div class="form-group form-check">
             <input type="checkbox" class="form-check-input" id="termsCheck" required>
-            <label class="form-check-label" for="termsCheck">I agree to the terms and conditions</label>
+            <label class="form-check-label" for="termsCheck">
+              I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms & Conditions</a>
+              and understand my data will be used as described in the <a href="#" data-bs-toggle="modal" data-bs-target="#privacyModal">Privacy Policy</a>
+            </label>
           </div>
           
           <button type="submit" class="btn btn-primary btn-block">
-            <i class="bi bi-check-circle-fill"></i> Activate
+            <i class="bi bi-check-circle-fill"></i> Activate QR Code
           </button>
         </form>
       </div>
@@ -776,6 +781,53 @@
         <button class="btn btn-primary" id="continueBtn">
           <i class="bi bi-arrow-right"></i> Continue
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Terms & Conditions Modal -->
+  <div class="modal fade" id="termsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Terms & Conditions</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>By activating your vehicle QR code, you agree to:</p>
+          <ul>
+            <li>Receive notifications when someone scans your QR code</li>
+            <li>Provide accurate vehicle information</li>
+            <li>Use the service responsibly</li>
+            <li>Comply with all applicable laws</li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">I Understand</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Privacy Policy Modal -->
+  <div class="modal fade" id="privacyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Privacy Policy</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>We respect your privacy and will:</p>
+          <ul>
+            <li>Only use your contact information for QR code notifications</li>
+            <li>Never share your personal details without consent</li>
+            <li>Secure your data with industry-standard protections</li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">I Understand</button>
+        </div>
       </div>
     </div>
   </div>
@@ -898,6 +950,13 @@
         const email = document.getElementById('emailAddress');
         if (email.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
           showFieldError(email, 'Enter a valid email address');
+          isValid = false;
+        }
+        
+        // Validate phone number format (simple check for 10 digits)
+        const phone = document.getElementById('contactNumber');
+        if (phone.value && !/^\d{10}$/.test(phone.value)) {
+          showFieldError(phone, 'Enter a valid 10-digit mobile number');
           isValid = false;
         }
         

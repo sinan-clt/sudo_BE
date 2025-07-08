@@ -12,8 +12,8 @@ urlpatterns = [
     path('update_order_status/', views.update_order_status, name='update_order_status'),
     path('logout/', views.admin_logout, name='logout'),
     path('register-external-user/', views.external_user_registration, name='external_register'),
-    path('send-notification/<str:user_id>/', views.check_id_enabled, name='check_id_enabled'),
-    path('activate-id/<str:user_id>/', views.activate_id, name='activate_id'),
-    path('send-notification-final/<str:user_id>/', views.send_notification, name='send_notification'),
+    path('send-notification/<str:qr_id>/', views.check_id_enabled, name='check_id_enabled'),
+    path('activate-id/<str:qr_id>/', views.activate_id, name='activate_id'),
+    path('send-notification-final/<str:qr_id>/', views.send_notification, name='send_notification'),
 
 ]

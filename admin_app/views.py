@@ -131,7 +131,8 @@ def generate_qr(request):
                         'createdDateTime': datetime.datetime.now(tz=datetime.timezone.utc),
                         'isAssigned': False,
                         'qrId': qr_id,
-                        'vehicleID': ''  # Add vehicleID reference
+                        'vehicleID': '',  # Add vehicleID reference
+                        'userID': ''
                     }
                     
                     db.collection('qrcodes').document(qr_id).set(qr_data_firestore)
@@ -372,26 +373,36 @@ def generate_random_password(length=7):
     chars = string.ascii_letters + string.digits + "!@#$%^&*"
     return ''.join(random.choice(chars) for _ in range(length))
 
-
-def check_id_enabled(request, user_id):
+def check_id_enabled(request, qr_id):
     try:
-        # Fetch user data from Firestore
-        user_ref = db.collection('users').document(user_id)
-        user_doc = user_ref.get()
+        # Check if QR code exists and is assigned
+        qr_ref = db.collection('qrcodes').document(qr_id)
+        qr_doc = qr_ref.get()
         
-        if not user_doc.exists:
+        if not qr_doc.exists:
             return render(request, 'invalid_qr.html', {'error': 'Invalid QR Code'})
         
-        user_data = user_doc.to_dict()
+        qr_data = qr_doc.to_dict()
         
-        if user_data.get('enableIdCheck', False):
-            return redirect('send_notification', user_id=user_id)
-        else:
-            return redirect('activate_id', user_id=user_id)
+        if qr_data.get('isAssigned', False):
+            # Get the associated vehicle
+            vehicle_ref = db.collection('vehicles').document(qr_data['vehicleID'])
+            vehicle_doc = vehicle_ref.get()
+            
+            if vehicle_doc.exists:
+                vehicle_data = vehicle_doc.to_dict()
+                # Get the user data
+                user_ref = db.collection('users').document(vehicle_data['ownerId'])
+                user_doc = user_ref.get()
+                
+                if user_doc.exists and user_doc.to_dict().get('enableIdCheck', False):
+                    return redirect('send_notification', qr_id=qr_id)
+            
+        # If QR not assigned or user not enabled, redirect to activation
+        return redirect('activate_id', qr_id=qr_id)
             
     except Exception as e:
         return render(request, 'error.html', {'error': str(e)})
-
 
 def send_welcome_email_for_id(email, name, password):
     subject = 'Welcome to Sudo - Your Account is Ready!'
@@ -430,7 +441,6 @@ def send_welcome_email_for_id(email, name, password):
         recipient_list=[email],
         fail_silently=False
     )
-
 
 def send_vehicle_registration_email(email, name, vehicle_data):
     subject = 'Your Vehicle Registration is Complete!'
@@ -472,21 +482,20 @@ def send_vehicle_registration_email(email, name, vehicle_data):
         fail_silently=False
     )
 
-
 @ensure_csrf_cookie
-def activate_id(request, user_id):
+def activate_id(request, qr_id):
     try:
-        # Verify user exists first
-        user_ref = db.collection('users').document(user_id)
-        user_doc = user_ref.get()
+        # Verify QR code exists first
+        qr_ref = db.collection('qrcodes').document(qr_id)
+        qr_doc = qr_ref.get()
         
-        if not user_doc.exists:
+        if not qr_doc.exists:
             return render(request, 'invalid_qr.html', {'error': 'Invalid QR Code'})
         
-        user_data = user_doc.to_dict()
+        qr_data = qr_doc.to_dict()
         
-        if user_data.get('enableIdCheck', False):
-            return redirect('send_notification', user_id=user_id)
+        if qr_data.get('isAssigned', False):
+            return redirect('send_notification', qr_id=qr_id)
         
         if request.method == 'POST':
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -496,7 +505,7 @@ def activate_id(request, user_id):
                 # Validate required fields
                 required_fields = {
                     'user': ['fullName', 'contactNumber', 'city', 'emailAddress'],
-                    'vehicle': ['make', 'model', 'registrationNumber','vehicleType']
+                    'vehicle': ['make', 'model', 'registrationNumber', 'vehicleType']
                 }
                 
                 errors = {}
@@ -520,13 +529,13 @@ def activate_id(request, user_id):
                 # Check if email is already taken (only if no format error)
                 if data.get('emailAddress') and not errors.get('emailAddress'):
                     email_query = db.collection('users').where('emailAddress', '==', data['emailAddress']).limit(1).get()
-                    if len(email_query) > 0 and email_query[0].id != user_id:
+                    if len(email_query) > 0:
                         errors['emailAddress'] = 'This email is already registered'
                 
                 # Check if phone number is already taken (only if no required error)
                 if data.get('contactNumber') and not errors.get('contactNumber'):
                     phone_query = db.collection('users').where('contactNumber', '==', data['contactNumber']).limit(1).get()
-                    if len(phone_query) > 0 and phone_query[0].id != user_id:
+                    if len(phone_query) > 0:
                         errors['contactNumber'] = 'This phone number is already registered'
                 
                 if errors:
@@ -555,21 +564,26 @@ def activate_id(request, user_id):
                             'message': f'Failed to create authentication user: {str(auth_error)}'
                         }, status=400)
                     
-                    # Update user data in Firestore
-                    user_updates = {
+                    # Create user data in Firestore
+                    user_data = {
                         'uid': user.uid,  # Store Firebase Auth UID
                         'fullName': data.get('fullName'),
                         'contactNumber': data.get('contactNumber'),
                         'city': data.get('city'),
                         'emailAddress': data.get('emailAddress'),
                         'enableIdCheck': True,
+                        'createdAt': firestore.SERVER_TIMESTAMP,
+                        'profilePicture': 'default_profile.png',
+                        'role': 0
                     }
-                    user_ref.update(user_updates)
+                    
+                    user_ref = db.collection('users').document(user.uid)
+                    user_ref.set(user_data)
                     
                     # Create vehicle document
+                    vehicle_id = str(uuid.uuid4())
                     vehicle_data = {
-                        'ownerId': user_id,
-                        'ownerUid': user.uid,  # Link to Firebase Auth UID
+                        'ownerId': user.uid,
                         'ownerFullName': data.get('fullName'),
                         'ownerContact': data.get('contactNumber'),
                         'make': data.get('make'),
@@ -578,11 +592,19 @@ def activate_id(request, user_id):
                         'vehicleType': data.get('vehicleType'),
                         'createdAt': firestore.SERVER_TIMESTAMP,
                         'isQrGenerated': True,
-                        'qrCodeId': user_id
+                        'qrCodeId': qr_id
                     }
                     
-                    vehicle_ref = db.collection('vehicles').document()
+                    vehicle_ref = db.collection('vehicles').document(vehicle_id)
                     vehicle_ref.set(vehicle_data)
+                    
+                    # Update QR code to mark as assigned
+                    qr_ref.update({
+                        'isAssigned': True,
+                        'vehicleID': vehicle_id,
+                        'userID': user.uid,
+                        'assignedAt': firestore.SERVER_TIMESTAMP
+                    })
                     
                     # Send both emails
                     send_welcome_email_for_id(
@@ -600,7 +622,7 @@ def activate_id(request, user_id):
                     return JsonResponse({
                         'status': 'success', 
                         'message': 'Registration completed successfully!',
-                        'redirect_url': reverse('send_notification', args=[user_id])
+                        'redirect_url': reverse('send_notification', args=[qr_id])
                     })
                     
                 except Exception as e:
@@ -617,7 +639,6 @@ def activate_id(request, user_id):
         
         # Render the registration form
         context = {
-            'user_data': user_data,
             'is_new_registration': True
         }
         
@@ -627,87 +648,101 @@ def activate_id(request, user_id):
         return render(request, 'error.html', {'error': str(e)})
 
 @ensure_csrf_cookie
-def send_notification(request, user_id):
-    # Fetch user data from Firestore
-    user_ref = db.collection('users').document(user_id)
-    user_data = user_ref.get()
+def send_notification(request, qr_id):
+    try:
+        # Get QR code data
+        qr_ref = db.collection('qrcodes').document(qr_id)
+        qr_doc = qr_ref.get()
 
-    if not user_data.exists:
-        return render(request, 'error.html', {'error': 'User not found!'})
+        if not qr_doc.exists or not qr_doc.to_dict().get('isAssigned', False):
+            return render(request, 'error.html', {'error': 'QR code not assigned!'})
 
-    user_data = user_data.to_dict()
+        qr_data = qr_doc.to_dict()
+        
+        # Get vehicle data
+        vehicle_ref = db.collection('vehicles').document(qr_data['vehicleID'])
+        vehicle_doc = vehicle_ref.get()
+        
+        if not vehicle_doc.exists:
+            return render(request, 'error.html', {'error': 'Vehicle not found!'})
 
-    # Check if ID check is enabled - if not, redirect to activation page
-    if not user_data.get('enableIdCheck', False):
-        return redirect('activate_id', user_id=user_id)
-    
-    # Fetch vehicle data from Firestore
-    vehicle_data = {}
-    vehicles_ref = db.collection('vehicles').where('ownerId', '==', user_id).limit(1)
-    vehicles = vehicles_ref.stream()
-    
-    for vehicle in vehicles:
-        vehicle_data = vehicle.to_dict()
-        break  # Get the first vehicle
-    
-    if request.method == 'POST':
-        # Handle AJAX request
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            import json
-            data = json.loads(request.body)
-            
-            reason = data.get('reason')
-            plate_digits = data.get('plate_digits')
-            user_phone = data.get('user_phone', '')
-            
-            # Validate plate digits
-            if not vehicle_data or plate_digits != vehicle_data.get('registrationNumber', '')[-4:]:
-                return JsonResponse({
-                    'status': 'error', 
-                    'message': 'The plate number does not match. Please check you are entering the right plate number.'
-                })
-            
-            # Get the FCM token from user data
-            fcm_token = user_data.get('fcmToken')
-            
-            if not fcm_token:
-                return JsonResponse({
-                    'status': 'error', 
-                    'message': 'User does not have a valid FCM token.'
-                })
-
-            # Create the notification message
-            message = messaging.Message(
-                notification=messaging.Notification(
-                    title="Vehicle Alert",
-                    body=reason,
-                ),
-                token=fcm_token,
-            )
-
-            # Send the notification
-            try:
-                response = messaging.send(message)
+        vehicle_data = vehicle_doc.to_dict()
+        
+        # Get user data
+        user_ref = db.collection('users').document(vehicle_data['ownerId'])
+        user_doc = user_ref.get()
+        
+        if not user_doc.exists or not user_doc.to_dict().get('enableIdCheck', False):
+            return redirect('activate_id', qr_id=qr_id)
+        
+        user_data = user_doc.to_dict()
+        
+        if request.method == 'POST':
+            # Handle AJAX request
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                import json
+                data = json.loads(request.body)
                 
-                return JsonResponse({
-                    'status': 'success', 
-                    'message': 'We have sent your message to the vehicle owner.'
-                })
-            except Exception as e:
-                return JsonResponse({
-                    'status': 'error', 
-                    'message': f'Failed to send notification: {str(e)}'
-                })
+                reason = data.get('reason')
+                plate_digits = data.get('plate_digits')
+                user_phone = data.get('user_phone', '')
+                
+                # Validate plate digits
+                if plate_digits != vehicle_data.get('registrationNumber', '')[-4:]:
+                    return JsonResponse({
+                        'status': 'error', 
+                        'message': 'The plate number does not match. Please check you are entering the right plate number.'
+                    })
+                
+                # Get the FCM token from user data
+                fcm_token = user_data.get('fcmToken')
+                
+                if not fcm_token:
+                    return JsonResponse({
+                        'status': 'error', 
+                        'message': 'User does not have a valid FCM token.'
+                    })
 
-    # Render the initial page with vehicle data or no vehicle message
-    context = {}
-    if vehicle_data:
-        context['vehicle_data'] = {
-            'model': vehicle_data.get('model', ''),
-            'registrationNumber': vehicle_data.get('registrationNumber', '')
+                # Create the notification message
+                message = messaging.Message(
+                    notification=messaging.Notification(
+                        title="Vehicle Alert",
+                        body=reason,
+                    ),
+                    token=fcm_token,
+                    data={
+                        'vehicleId': qr_data['vehicleID'],
+                        'qrId': qr_id,
+                        'notificationType': 'vehicle_alert'
+                    }
+                )
+
+                # Send the notification
+                try:
+                    response = messaging.send(message)
+                    
+                    return JsonResponse({
+                        'status': 'success', 
+                        'message': 'We have sent your message to the vehicle owner.'
+                    })
+                except Exception as e:
+                    return JsonResponse({
+                        'status': 'error', 
+                        'message': f'Failed to send notification: {str(e)}'
+                    })
+
+        # Render the initial page with vehicle data
+        context = {
+            'vehicle_data': {
+                'model': vehicle_data.get('model', ''),
+                'registrationNumber': vehicle_data.get('registrationNumber', '')
+            }
         }
+        
+        return render(request, 'send_notification.html', context)
     
-    return render(request, 'send_notification.html', context)
+    except Exception as e:
+        return render(request, 'error.html', {'error': str(e)})
 
 
 # Define status mapping
