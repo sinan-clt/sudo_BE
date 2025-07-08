@@ -113,42 +113,36 @@ def generate_qr(request):
             count = int(request.POST.get('count', 1))
             
             for _ in range(count):
-                user_id = base64.urlsafe_b64encode(uuid.uuid4().bytes).decode('utf-8')[:8]
-                
-                # Create user data with all required fields
-                user_data = {
-                    'userId': user_id,
-                    'createdAt': datetime.datetime.now(tz=datetime.timezone.utc),   
-                    'emailAddress': '',
-                    'enableIdCheck': False,
-                    'fcmToken': '',
-                    'contactNumber': '',
-                    'profilePicture': 'default_profile.png',
-                    'role': 0,
-                    'city': '',
-                    'fullName': ''
-                }
-                
-                # Save to Firestore with error handling
                 try:
-                    db.collection('users').document(user_id).set(user_data)
+                    # Generate a unique ID for the QR code
+                    qr_id = base64.urlsafe_b64encode(uuid.uuid4().bytes).decode('utf-8')[:16]
                     
-                    # Generate QR code
-                    registration_url = f"{base_domain}/send-notification/{user_id}/"
+                    # Create QR code data
+                    registration_url = f"{base_domain}/send-notification/{qr_id}/"
                     qr_code = qrcode.make(registration_url)
                     buffer = BytesIO()
                     qr_code.save(buffer, format="PNG")
                     qr_code_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
                     
+                    # Save to Firestore qrcodes collection
+                    qr_data_firestore = {
+                        'createdBy': 'admin',
+                        'createdDateTime': datetime.datetime.now(tz=datetime.timezone.utc),
+                        'isAssigned': False,
+                        'qrId': qr_id
+                    }
+                    
+                    db.collection('qrcodes').document(qr_id).set(qr_data_firestore)
+                    
                     qr_data.append({
                         'type': 'user',
-                        'userId': user_id,
+                        'qrId': qr_id,
                         'qr_code_base64': qr_code_base64
                     })
                     
                 except Exception as e:
                     return render(request, 'generate_qr.html', {
-                        'error': f'Failed to save user: {str(e)}'
+                        'error': f'Failed to generate QR: {str(e)}'
                     })
 
         else:
@@ -230,7 +224,8 @@ def download_qr_pdf(request):
     row = []
 
     for qr in qr_data:
-        label = f"User ID: {qr['userId']}" if qr['type'] == 'user' else "External Registration"
+        # Updated to use qrId instead of userId
+        label = f"QR ID: {qr['qrId']}" if qr['type'] == 'user' else "External Registration"
         
         qr_image = Image(BytesIO(base64.b64decode(qr['qr_code_base64'])), width=150, height=150)
         label_paragraph = Paragraph(f"<b>{label}</b>", styles['BodyText'])
