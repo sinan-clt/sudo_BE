@@ -232,6 +232,36 @@
       transform: scale(1.1);
     }
 
+    /* Custom Message Styles */
+    #customMessageContainer {
+      display: none;
+      margin-top: 15px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    #customMessage {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(0,0,0,0.1);
+      min-height: 100px;
+      transition: all 0.3s ease;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    #customMessage:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+      outline: none;
+    }
+
+    .char-count {
+      font-size: 0.8rem;
+      color: #666;
+      text-align: right;
+      margin-top: 5px;
+    }
+
     /* Button Styles */
     .btn-container {
       margin-top: 25px;
@@ -503,6 +533,22 @@
             <i class="bi bi-exclamation-triangle-fill reason-icon"></i>
             <span>Some issues with the vehicle noticed</span>
           </div>
+          
+          <div class="reason-item" onclick="selectReason(this, 'custom')" id="customReasonItem">
+            <i class="bi bi-chat-square-text-fill reason-icon"></i>
+            <span>Other reason (type your message)</span>
+          </div>
+        </div>
+
+        <!-- Custom Message Container -->
+        <div id="customMessageContainer">
+          <textarea 
+            class="form-control" 
+            id="customMessage" 
+            rows="3" 
+            placeholder="Please type your message here..."
+            maxlength="200"></textarea>
+          <div class="char-count"><span id="charCount">0</span>/200 characters</div>
         </div>
 
         <div class="btn-container">
@@ -574,6 +620,9 @@
     const plateDigits = document.getElementById('plateDigits');
     const toastNotification = document.getElementById('toastNotification');
     const toastMessage = document.getElementById('toastMessage');
+    const customMessageContainer = document.getElementById('customMessageContainer');
+    const customMessage = document.getElementById('customMessage');
+    const charCount = document.getElementById('charCount');
     
     // Selected reason and vehicle data
     let selectedReason = '';
@@ -596,6 +645,14 @@
         bubble.style.animationDuration = (Math.random() * 10 + 10) + 's';
         bubblesContainer.appendChild(bubble);
       }
+      
+      // Hide custom message container initially
+      customMessageContainer.style.display = 'none';
+      
+      // Set up character counter for custom message
+      customMessage.addEventListener('input', function() {
+        charCount.textContent = this.value.length;
+      });
     });
 
     // Function to select reason
@@ -609,12 +666,26 @@
       // Add selected class to clicked item
       element.classList.add('selected');
       selectedReason = reason;
+      
+      // Show/hide custom message field
+      if (reason === 'custom') {
+        customMessageContainer.style.display = 'block';
+        customMessage.focus();
+      } else {
+        customMessageContainer.style.display = 'none';
+      }
     }
 
     // Show modal when Notify button is clicked
     notifyBtn.addEventListener('click', function() {
       if (!selectedReason) {
         showToast('Please select a reason first', 'error');
+        return;
+      }
+      
+      // If custom reason is selected but no message
+      if (selectedReason === 'custom' && customMessage.value.trim() === '') {
+        showToast('Please type your message', 'error');
         return;
       }
 
@@ -637,8 +708,14 @@
         return;
       }
       
-      // If validation passes, send notification
-      sendNotification(selectedReason, enteredDigits);
+      // Prepare the message to send
+      let messageToSend = selectedReason;
+      if (selectedReason === 'custom') {
+        messageToSend = customMessage.value.trim();
+      }
+      
+      // Send notification
+      sendNotification(messageToSend, enteredDigits);
     });
 
     // Function to show toast notification
@@ -661,7 +738,7 @@
     }
 
     // Function to send notification to server
-    function sendNotification(reason, plateDigits) {
+    function sendNotification(message, plateDigits) {
       const csrfToken = "{{ csrf_token }}";
       
       if (!csrfToken) {
@@ -682,7 +759,7 @@
           'X-Requested-With': 'XMLHttpRequest'
         },
         body: JSON.stringify({
-          reason: reason,
+          reason: message,
           plate_digits: plateDigits
         })
       })
@@ -702,6 +779,9 @@
             item.classList.remove('selected');
           });
           selectedReason = '';
+          customMessage.value = '';
+          customMessageContainer.style.display = 'none';
+          charCount.textContent = '0';
           plateDigits.value = '';
           plateModal.style.display = 'none';
         } else {
