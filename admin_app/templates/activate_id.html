@@ -1000,9 +1000,21 @@
         })
         .then(data => {
           if (data.status === 'success') {
-            // Show success message
+            // Show success message with appropriate text
             activationFormContainer.style.display = 'none';
             successMessage.style.display = 'block';
+            
+            if (data.is_new_user) {
+                document.querySelector('.success-title').textContent = 'Account & Vehicle Registration Successful!';
+                document.querySelector('.success-text').textContent = 
+                    'Your account has been created and your vehicle QR code is now active. ' +
+                    'Others can scan it to contact you.';
+            } else {
+                document.querySelector('.success-title').textContent = 'Vehicle Registration Successful!';
+                document.querySelector('.success-text').textContent = 
+                    'Your new vehicle has been added to your account and the QR code is now active. ' +
+                    'Others can scan it to contact you.';
+            }
             
             // Redirect after delay if needed
             if (data.redirect_url) {
@@ -1027,7 +1039,7 @@
             });
             showToast(errorData.message || 'Please correct the errors', 'error');
           } else {
-            showToast(errorData.message || 'Activation failed. Please try again.', 'error');
+            showToast(errorData.message || 'Registration failed. Please try again.', 'error');
           }
         })
         .finally(() => {

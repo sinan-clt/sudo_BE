@@ -526,18 +526,6 @@ def activate_id(request, qr_id):
                     except ValidationError:
                         errors['emailAddress'] = 'Enter a valid email address'
                 
-                # Check if email is already taken (only if no format error)
-                if data.get('emailAddress') and not errors.get('emailAddress'):
-                    email_query = db.collection('users').where('emailAddress', '==', data['emailAddress']).limit(1).get()
-                    if len(email_query) > 0:
-                        errors['emailAddress'] = 'This email is already registered'
-                
-                # Check if phone number is already taken (only if no required error)
-                if data.get('contactNumber') and not errors.get('contactNumber'):
-                    phone_query = db.collection('users').where('contactNumber', '==', data['contactNumber']).limit(1).get()
-                    if len(phone_query) > 0:
-                        errors['contactNumber'] = 'This phone number is already registered'
-                
                 if errors:
                     return JsonResponse({
                         'status': 'error',
@@ -546,44 +534,103 @@ def activate_id(request, qr_id):
                     }, status=400)
                 
                 try:
-                    # Generate random password
-                    password = generate_random_password()
+                    # Check if user exists in Firestore
+                    user_query = db.collection('users').where('emailAddress', '==', data['emailAddress']).limit(1).get()
+                    user_exists_in_firestore = len(user_query) > 0
                     
-                    # Create user in Firebase Authentication
+                    # Check if user exists in Firebase Auth (try to get user)
                     try:
-                        user = auth.create_user(
-                            email=data['emailAddress'],
-                            email_verified=False,
-                            password=password,
-                            display_name=data['fullName'],
-                            disabled=False
-                        )
-                    except Exception as auth_error:
+                        auth_user = auth.get_user_by_email(data['emailAddress'])
+                        user_exists_in_auth = True
+                    except:
+                        user_exists_in_auth = False
+                    
+                    # Handle different cases
+                    if user_exists_in_auth and user_exists_in_firestore:
+                        # Existing user - proceed with vehicle registration
+                        user_doc = user_query[0]
+                        user_data = user_doc.to_dict()
+                        user_id = user_doc.id
+                        
+                        # Verify phone matches existing user
+                        if user_data.get('contactNumber') != data['contactNumber']:
+                            return JsonResponse({
+                                'status': 'error',
+                                'message': 'Phone number does not match existing account',
+                                'errors': {'contactNumber': 'This phone number does not match your existing account'}
+                            }, status=400)
+                            
+                    elif user_exists_in_auth and not user_exists_in_firestore:
+                        # Edge case: user in auth but not in firestore - shouldn't happen
                         return JsonResponse({
                             'status': 'error',
-                            'message': f'Failed to create authentication user: {str(auth_error)}'
+                            'message': 'Account exists but data is incomplete. Please contact support.',
+                            'errors': {'emailAddress': 'Account issue detected'}
+                        }, status=400)
+                        
+                    elif not user_exists_in_auth and user_exists_in_firestore:
+                        # Edge case: user in firestore but not auth - shouldn't happen
+                        return JsonResponse({
+                            'status': 'error',
+                            'message': 'Account data mismatch. Please contact support.',
+                            'errors': {'emailAddress': 'Account issue detected'}
+                        }, status=400)
+                        
+                    else:
+                        # New user - create account
+                        password = generate_random_password()
+                        
+                        try:
+                            user = auth.create_user(
+                                email=data['emailAddress'],
+                                email_verified=False,
+                                password=password,
+                                display_name=data['fullName'],
+                                disabled=False
+                            )
+                        except auth.EmailAlreadyExistsError:
+                            # Handle case where user was created between our check and creation attempt
+                            user = auth.get_user_by_email(data['emailAddress'])
+                            
+                        # Create user data in Firestore
+                        user_data = {
+                            'uid': user.uid,
+                            'fullName': data.get('fullName'),
+                            'contactNumber': data.get('contactNumber'),
+                            'city': data.get('city'),
+                            'emailAddress': data.get('emailAddress'),
+                            'enableIdCheck': True,
+                            'createdAt': firestore.SERVER_TIMESTAMP,
+                            'profilePicture': 'default_profile.png',
+                            'role': 0
+                        }
+                        
+                        user_ref = db.collection('users').document(user.uid)
+                        user_ref.set(user_data)
+                        user_id = user.uid
+                        
+                        # Send welcome email only for new users
+                        send_welcome_email_for_id(
+                            email=data['emailAddress'],
+                            name=data['fullName'],
+                            password=password
+                        )
+                    
+                    # Check if this vehicle is already registered to this user
+                    vehicle_query = db.collection('vehicles').where('ownerId', '==', user_id)\
+                        .where('registrationNumber', '==', data['registrationNumber']).limit(1).get()
+                    
+                    if len(vehicle_query) > 0:
+                        return JsonResponse({
+                            'status': 'error',
+                            'message': 'This vehicle is already registered to your account',
+                            'errors': {'registrationNumber': 'This vehicle is already registered'}
                         }, status=400)
                     
-                    # Create user data in Firestore
-                    user_data = {
-                        'uid': user.uid,  # Store Firebase Auth UID
-                        'fullName': data.get('fullName'),
-                        'contactNumber': data.get('contactNumber'),
-                        'city': data.get('city'),
-                        'emailAddress': data.get('emailAddress'),
-                        'enableIdCheck': True,
-                        'createdAt': firestore.SERVER_TIMESTAMP,
-                        'profilePicture': 'default_profile.png',
-                        'role': 0
-                    }
-                    
-                    user_ref = db.collection('users').document(user.uid)
-                    user_ref.set(user_data)
-                    
-                    # Create vehicle document
+                    # Create vehicle document (for both new and existing users)
                     vehicle_id = str(uuid.uuid4())
                     vehicle_data = {
-                        'ownerId': user.uid,
+                        'ownerId': user_id,
                         'ownerFullName': data.get('fullName'),
                         'ownerContact': data.get('contactNumber'),
                         'make': data.get('make'),
@@ -602,17 +649,11 @@ def activate_id(request, qr_id):
                     qr_ref.update({
                         'isAssigned': True,
                         'vehicleID': vehicle_id,
-                        'userID': user.uid,
+                        'userID': user_id,
                         'assignedAt': firestore.SERVER_TIMESTAMP
                     })
                     
-                    # Send both emails
-                    send_welcome_email_for_id(
-                        email=data['emailAddress'],
-                        name=data['fullName'],
-                        password=password
-                    )
-                    
+                    # Send vehicle registration email
                     send_vehicle_registration_email(
                         email=data['emailAddress'],
                         name=data['fullName'],
@@ -621,13 +662,14 @@ def activate_id(request, qr_id):
                     
                     return JsonResponse({
                         'status': 'success', 
-                        'message': 'Registration completed successfully!',
-                        'redirect_url': reverse('send_notification', args=[qr_id])
+                        'message': 'Vehicle registration completed successfully!',
+                        'redirect_url': reverse('send_notification', args=[qr_id]),
+                        'is_new_user': not user_exists_in_auth
                     })
                     
                 except Exception as e:
                     # Clean up Firebase Auth user if creation failed
-                    if 'user' in locals():
+                    if 'user' in locals() and user and not user_exists_in_auth:
                         try:
                             auth.delete_user(user.uid)
                         except:
