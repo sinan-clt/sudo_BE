@@ -476,38 +476,38 @@
       </div>
 
       <div>
-        <p style="text-align: center; margin-bottom: 25px; color: #555;">Please select a reason why do you want to contact the owner.</p>
+        <p style="text-align: center; margin-bottom: 25px; color: #555;">Please select why you need to contact the vehicle owner:</p>
         
         <div class="reason-list">
-          <div class="reason-item" onclick="selectReason(this, 'The lights of this car is on.')">
+          <div class="reason-item" onclick="selectReason(this, 'Vehicle lights are on')">
             <i class="bi bi-lightbulb-fill reason-icon"></i>
-            <span>The lights of this car is on.</span>
+            <span>Vehicle lights are on</span>
           </div>
           
-          <div class="reason-item" onclick="selectReason(this, 'The car is in no parking.')">
+          <div class="reason-item" onclick="selectReason(this, 'Vehicle is at a No Parking Zone')">
             <i class="bi bi-sign-stop-fill reason-icon"></i>
-            <span>The car is in no parking.</span>
+            <span>Vehicle is at a No Parking Zone</span>
           </div>
           
-          <div class="reason-item" onclick="selectReason(this, 'The car is getting towed.')">
+          <div class="reason-item" onclick="selectReason(this, 'Vehicle is getting towed')">
             <i class="bi bi-truck-flatbed reason-icon"></i>
-            <span>The car is getting towed.</span>
+            <span>Vehicle is getting towed</span>
           </div>
           
-          <div class="reason-item" onclick="selectReason(this, 'The window or car is open.')">
+          <div class="reason-item" onclick="selectReason(this, 'Vehicle window is open')">
             <i class="bi bi-door-open-fill reason-icon"></i>
-            <span>The window or car is open.</span>
+            <span>Vehicle window is open</span>
           </div>
           
-          <div class="reason-item" onclick="selectReason(this, 'Something wrong with this car.')">
+          <div class="reason-item" onclick="selectReason(this, 'Some issues with the vehicle noticed')">
             <i class="bi bi-exclamation-triangle-fill reason-icon"></i>
-            <span>Something wrong with this car.</span>
+            <span>Some issues with the vehicle noticed</span>
           </div>
         </div>
 
         <div class="btn-container">
           <button class="btn btn-primary" id="notifyBtn">
-            <i class="bi bi-bell-fill"></i>Notify Owner
+            <i class="bi bi-bell-fill"></i> Notify Owner
           </button>
         </div>
 
@@ -526,7 +526,7 @@
     <div class="card">
       <div class="no-vehicle">
         <i class="bi bi-exclamation-triangle-fill" style="font-size: 2.5rem; margin-bottom: 15px;"></i>
-        <p style="font-size: 1.2rem;">No vehicle registered for this user</p>
+        <p style="font-size: 1.2rem;">No vehicle registered for this QR code</p>
       </div>
     </div>
     {% endif %}
