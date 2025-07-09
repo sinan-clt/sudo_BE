@@ -1,57 +1,112 @@
 {% extends "base.html" %}
 
-{% block title %}View Orders - Sudo Admin Panel{% endblock %}
+{% block title %}Order Management - Admin Panel{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1 class="mt-4">View Orders</h1>
+<div class="container-fluid">
+    <h1 class="mt-4 mb-4">Order Management</h1>
+    
     {% if error %}
         <div class="alert alert-danger">{{ error }}</div>
     {% elif orders %}
     <div class="table-responsive">
-        <table class="table table-striped mt-4">
+        <table class="table table-hover align-middle">
             <thead class="table-dark">
-                <tr class="bg-dark">
-                    <th>#</th>
+                <tr>
                     <th>Order ID</th>
-                    <th>Name</th>
-                    <th>Mobile</th>
-                    <th>Item</th>
-                    <th>Quantity</th>
-                    <th>Price</th>
-                    <!-- <th>User Details</th> -->
+                    <th>Customer</th>
+                    <th>Product</th>
+                    <th>Vehicle</th>
+                    <th>Address</th>
+                    <th>Payment</th>
+                    <th>Date</th>
                     <th>Status</th>
                 </tr>
             </thead>
             <tbody>
                 {% for entry in orders %}
-                    <tr>
-                        <td>{{ forloop.counter }}</td>
-                        <td>{{ entry.order.orderId }}</td>
-                        <td>{{ entry.order.fullName }}</td>
-                        <td>{{ entry.order.mobile }}</td>
-                        <td>{{ entry.order.selectedItem }}</td>
-                        <td>{{ entry.order.quantity }}</td>
-                        <!-- Price formatted to integer -->
-                        <td>{{ entry.order.totalPrice|floatformat:0 }}</td>
-                        <!-- <td>
-                            <strong>Name:</strong> {{ entry.user.firstname }} {{ entry.user.lastName }}<br>
-                            <strong>Email:</strong> {{ entry.user.emailAddress }}<br>
-                            <strong>Mobile:</strong> {{ entry.user.mobileNumber }}
-                        </td> -->
-                        <td>
-                            <select class="form-select status-dropdown" data-order-id="{{ entry.order.orderId }}" style="width: 100%; max-width: 200px;">
-                                <option value="0" {% if entry.order.order_status == 0 %}selected{% endif %}>Pending</option>
-                                <option value="1" {% if entry.order.order_status == 1 %}selected{% endif %}>Processing</option>
-                                <option value="2" {% if entry.order.order_status == 2 %}selected{% endif %}>Shipped</option>
-                                <option value="3" {% if entry.order.order_status == 3 %}selected{% endif %}>Delivered</option>
-                                <option value="4" {% if entry.order.order_status == 4 %}selected{% endif %}>Cancelled</option>
-                                <option value="5" {% if entry.order.order_status == 5 %}selected{% endif %}>Returned</option>
-                                <option value="6" {% if entry.order.order_status == 6 %}selected{% endif %}>Failed</option>
-                                <option value="7" {% if entry.order.order_status == 7 %}selected{% endif %}>On Hold</option>
-                            </select>
-                        </td>
-                    </tr>
+                <tr>
+                    <!-- Order ID Column -->
+                    <td class="text-nowrap">
+                        <div class="fw-bold">{{ entry.order.id|truncatechars:12 }}</div>
+                        <small class="text-muted">Payment Ref: {{ entry.order.paymentOrderId|truncatechars:10 }}</small>
+                    </td>
+                    
+                    <!-- Customer Column -->
+                    <td>
+                        <div class="fw-bold">{{ entry.order.fullName }}</div>
+                        <div>{{ entry.order.mobile }}</div>
+                        {% if entry.order.mobileNumber != entry.order.mobile %}
+                        <div>{{ entry.order.mobileNumber }}</div>
+                        {% endif %}
+                    </td>
+                    
+                    <!-- Product Column -->
+                    <td>
+                        <div class="fw-bold text-capitalize">{{ entry.order.selectedItem }}</div>
+                        <div>Qty: {{ entry.order.quantity }}</div>
+                        <div>₹{{ entry.order.amount }}</div>
+                    </td>
+                    
+                    <!-- Vehicle Column -->
+                    <td>
+                        <div>{{ entry.order.vehicleCategory }}</div>
+                        <div class="fw-bold">{{ entry.order.vehicleNumber }}</div>
+                    </td>
+                    
+                    <!-- Address Column (Expanded Details) -->
+                    <td>
+                        <div class="address-details">
+                            <div>{{ entry.order.address.houseNumber }}</div>
+                            <div>{{ entry.order.address.street }}</div>
+                            <div>{{ entry.order.address.landmark }}</div>
+                            <div>{{ entry.order.address.city }}, {{ entry.order.address.state }}</div>
+                            <div>{{ entry.order.address.pincode }}, {{ entry.order.address.country }}</div>
+                        </div>
+                    </td>
+                    
+                    <!-- Payment Column -->
+                    <td>
+                        {% if entry.order.paymentStatus == "paid" %}
+                            <span class="badge bg-success rounded-pill payment-badge">Paid</span>
+                        {% else %}
+                            <span class="badge bg-warning rounded-pill payment-badge">{{ entry.order.paymentStatus|default:"Pending" }}</span>
+                        {% endif %}
+                        <div class="mt-1 small text-muted">
+                            {{ entry.order.paymentId|truncatechars:10 }}...
+                        </div>
+                    </td>
+                    
+                    <!-- Date Column -->
+                    <td class="text-nowrap">
+                        {{ entry.order.timestamp|date:"d M Y" }}<br>
+                        <small>{{ entry.order.timestamp|date:"H:i" }}</small>
+                    </td>
+                    
+                    <!-- Status Column -->
+                    <td>
+                        <select class="form-select form-select-sm status-dropdown" 
+                                data-order-id="{{ entry.order.id }}">
+                            {% for key, value in STATUS_MAPPING.items %}
+                            <option value="{{ key }}" {% if entry.order.orderStatus == key %}selected{% endif %}>
+                                {{ value }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="mt-2 text-center">
+                            <span class="badge rounded-pill status-badge
+                                {% if entry.order.orderStatus == 0 %}bg-secondary
+                                {% elif entry.order.orderStatus == 1 %}bg-info
+                                {% elif entry.order.orderStatus == 2 %}bg-primary
+                                {% elif entry.order.orderStatus == 3 %}bg-success
+                                {% elif entry.order.orderStatus == 4 %}bg-danger
+                                {% elif entry.order.orderStatus == 5 %}bg-warning
+                                {% else %}bg-dark{% endif %}">
+                                {{ entry.order.status_text }}
+                            </span>
+                        </div>
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -61,36 +116,93 @@
     {% endif %}
 </div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const statusDropdowns = document.querySelectorAll('.status-dropdown');
-        
-        statusDropdowns.forEach(dropdown => {
-            dropdown.addEventListener('change', function() {
-                const orderId = this.getAttribute('data-order-id');
-                const newStatus = this.value;
+<!-- Toast Notification -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="statusToast" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto">System Notification</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body" id="toastMessage"></div>
+    </div>
+</div>
 
-                fetch('/update_order_status/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    body: `orderId=${orderId}&newStatus=${newStatus}`
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Status updated successfully!');
-                    } else {
-                        alert('Failed to update status: ' + data.error);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
+<style>
+    .address-details div {
+        margin-bottom: 2px;
+    }
+    .table td {
+        vertical-align: middle;
+    }
+    .status-dropdown {
+        min-width: 120px;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Status update functionality
+    document.querySelectorAll('.status-dropdown').forEach(dropdown => {
+        dropdown._previousValue = dropdown.value;
+        
+        dropdown.addEventListener('change', function() {
+            const orderId = this.dataset.orderId;
+            const newStatus = this.value;
+            const row = this.closest('tr');
+            const paymentBadge = row.querySelector('.payment-badge'); // Get payment status badge
+            
+            // Store original payment status
+            const originalPaymentStatus = paymentBadge.textContent.trim();
+            const originalPaymentClass = paymentBadge.className;
+            
+            fetch('/update_order_status/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: `orderId=${orderId}&newStatus=${newStatus}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update status badge only
+                    const badge = row.querySelector('.status-badge');
+                    badge.textContent = data.status_text;
+                    badge.className = 'badge rounded-pill status-badge ' + 
+                        (newStatus == 0 ? 'bg-secondary' :
+                         newStatus == 1 ? 'bg-info' :
+                         newStatus == 2 ? 'bg-primary' :
+                         newStatus == 3 ? 'bg-success' :
+                         newStatus == 4 ? 'bg-danger' :
+                         newStatus == 5 ? 'bg-warning' : 'bg-dark');
+                    
+                    // Show notification
+                    showToast('Order status updated successfully', 'success');
+                } else {
+                    this.value = this._previousValue;
+                    showToast('Error: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.value = this._previousValue;
+                // Restore payment status if there was an error
+                paymentBadge.textContent = originalPaymentStatus;
+                paymentBadge.className = originalPaymentClass;
+                showToast('Network error occurred', 'error');
             });
         });
     });
+    
+    function showToast(message, type) {
+        const toast = new bootstrap.Toast(document.getElementById('statusToast'));
+        const toastBody = document.getElementById('toastMessage');
+        
+        toastBody.textContent = message;
+        toastBody.className = 'toast-body ' + (type === 'error' ? 'text-danger' : 'text-success');
+        toast.show();
+    }
+});
 </script>
 {% endblock %}

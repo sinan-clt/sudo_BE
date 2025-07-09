@@ -856,42 +856,45 @@ def view_orders(request):
         orders_data = []
         for order in orders:
             order_dict = order.to_dict()
-            user_id = order_dict.get('userId')
+            order_dict['id'] = order.id  # Add the document ID to the order data
             
-            # Fetch user details from the 'users' collection
-            user_ref = db.collection('users').document(user_id)
-            user_doc = user_ref.get()
-            user_data = user_doc.to_dict() if user_doc.exists else {}
-
             # Map order status to its corresponding text
-            order_status = order_dict.get('order_status', 0)
+            order_status = order_dict.get('orderStatus', 0)
             order_dict['status_text'] = STATUS_MAPPING.get(order_status, "Unknown")
 
-            # Combine order and user data
             orders_data.append({
                 'order': order_dict,
-                'user': user_data,
             })
 
         context = {
             'orders': orders_data,
+            'STATUS_MAPPING': STATUS_MAPPING,
         }
         return render(request, 'view_orders.html', context)
 
     except Exception as e:
         return render(request, 'view_orders.html', {'error': str(e)})
-
+    
 def update_order_status(request):
     if request.method == 'POST':
         try:
             order_id = request.POST.get('orderId')
             new_status = int(request.POST.get('newStatus'))
 
-            # Update the order status in the database
-            order_ref = db.collection('orders').document(order_id)
-            order_ref.update({'order_status': new_status})
+            if not order_id:
+                return JsonResponse({'success': False, 'error': 'Order ID is required'})
 
-            return JsonResponse({'success': True, 'status_text': STATUS_MAPPING.get(new_status, "Unknown")})
+            # Update ONLY the order status in the database
+            order_ref = db.collection('orders').document(order_id)
+            order_ref.update({
+                'orderStatus': new_status,
+                'status_text': STATUS_MAPPING.get(new_status, "Unknown")
+            })
+
+            return JsonResponse({
+                'success': True,
+                'status_text': STATUS_MAPPING.get(new_status, "Unknown")
+            })
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
