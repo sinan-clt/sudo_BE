@@ -25,27 +25,80 @@
     }
 
     :root {
-      --primary-color: #4361ee;
-      --primary-light: #e0e8ff;
-      --secondary-color: #3f37c9;
-      --accent-color: #4895ef;
-      --success-color: #2ecc71;
-      --danger-color: #e74c3c;
-      --dark-color: #1b263b;
-      --light-color: #f8f9fa;
-      --gray-color: #6c757d;
-      --warning-color: #f39c12;
+      --primary-color: #FFD700; /* Gold/Yellow */
+      --primary-dark: #FFC000; /* Darker Gold */
+      --primary-light: #FFF9C4; /* Light Yellow */
+      --secondary-color: #000000; /* Black */
+      --accent-color: #FFEA00; /* Bright Yellow */
+      --success-color: #4CAF50; /* Green */
+      --danger-color: #F44336; /* Red */
+      --dark-color: #212121; /* Dark Gray */
+      --light-color: #FAFAFA; /* Very Light Gray */
+      --gray-color: #757575; /* Medium Gray */
+      --warning-color: #FFC107; /* Amber */
+      
+      /* Theme variables */
+      --bg-color: #FAFAFA;
+      --text-color: #212121;
+      --card-bg: #FFFFFF;
+      --border-color: #E0E0E0;
+      --shadow-color: rgba(0, 0, 0, 0.1);
+    }
+
+    .dark-theme {
+      --primary-color: #FFD700; /* Gold/Yellow remains same */
+      --primary-dark: #FFC000;
+      --primary-light: #333300;
+      --secondary-color: #E0E0E0; /* Light Gray */
+      --accent-color: #FFEA00;
+      --success-color: #4CAF50;
+      --danger-color: #F44336;
+      --dark-color: #E0E0E0; /* Light Gray */
+      --light-color: #121212; /* Very Dark Gray */
+      --gray-color: #B0B0B0; /* Light Gray */
+      --warning-color: #FFC107;
+      
+      --bg-color: #121212;
+      --text-color: #E0E0E0;
+      --card-bg: #1E1E1E;
+      --border-color: #333333;
+      --shadow-color: rgba(0, 0, 0, 0.3);
     }
 
     body {
       font-family: 'Poppins', sans-serif;
       margin: 0;
       padding: 0;
-      color: var(--dark-color);
-      background-color: #f0f8ff;
+      color: var(--text-color);
+      background-color: var(--bg-color);
       min-height: 100vh;
       overflow-x: hidden;
       position: relative;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* Theme Toggle Button */
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      background-color: var(--primary-color);
+      color: var(--secondary-color);
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 10px var(--shadow-color);
+      transition: all 0.3s ease;
+    }
+
+    .theme-toggle:hover {
+      transform: scale(1.1);
     }
 
     /* Welcome Popup Styles */
@@ -72,11 +125,11 @@
     }
 
     .welcome-content {
-      background: white;
+      background: var(--card-bg);
       border-radius: 20px;
       width: 90%;
       max-width: 500px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 20px 50px var(--shadow-color);
       transform: scale(0.9);
       transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       overflow: hidden;
@@ -88,10 +141,10 @@
     }
 
     .welcome-header {
-      background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
       padding: 25px;
       text-align: center;
-      color: white;
+      color: var(--secondary-color);
       position: relative;
     }
 
@@ -168,14 +221,14 @@
     }
 
     .welcome-btn-primary {
-      background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-      color: white;
-      box-shadow: 0 4px 15px rgba(67, 97, 238, 0.4);
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+      color: var(--secondary-color);
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
     }
 
     .welcome-btn-primary:hover {
       transform: translateY(-3px);
-      box-shadow: 0 8px 25px rgba(67, 97, 238, 0.5);
+      box-shadow: 0 8px 25px rgba(255, 215, 0, 0.5);
     }
 
     .welcome-btn-outline {
@@ -202,7 +255,7 @@
     .bubble {
       position: absolute;
       bottom: -100px;
-      background: rgba(67, 97, 238, 0.15);
+      background: rgba(255, 215, 0, 0.15);
       border-radius: 50%;
       animation: floatBubble 10s infinite linear;
       opacity: 0;
@@ -220,7 +273,7 @@
       font-weight: 700;
       color: var(--primary-color);
       text-decoration: none;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      text-shadow: 0 2px 4px var(--shadow-color);
       letter-spacing: 1px;
     }
 
@@ -234,10 +287,10 @@
 
     /* Card Styles */
     .card {
-      background-color: rgba(255, 255, 255, 0.98);
+      background-color: var(--card-bg);
       border-radius: 16px;
       padding: 30px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 10px 30px var(--shadow-color);
       transition: transform 0.3s ease, box-shadow 0.3s ease;
       position: relative;
       overflow: hidden;
@@ -246,14 +299,14 @@
 
     .card:hover {
       transform: translateY(-5px);
-      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 15px 35px var(--shadow-color);
     }
 
     .card-title {
       font-size: 1.8rem;
       font-weight: 600;
       margin-bottom: 20px;
-      color: var(--dark-color);
+      color: var(--primary-color);
       text-align: center;
       position: relative;
       padding-bottom: 10px;
@@ -280,23 +333,24 @@
       font-weight: 500;
       margin-bottom: 8px;
       display: block;
-      color: var(--dark-color);
+      color: var(--text-color);
     }
 
     .form-control {
       width: 100%;
       padding: 12px 15px;
-      border: 1px solid #e0e0e0;
+      border: 1px solid var(--border-color);
       border-radius: 10px;
       font-size: 1rem;
       transition: all 0.3s;
-      background-color: var(--light-color);
+      background-color: var(--card-bg);
+      color: var(--text-color);
     }
 
     .form-control:focus {
       border-color: var(--primary-color);
-      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
-      background-color: white;
+      box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+      background-color: var(--card-bg);
     }
 
     .btn {
@@ -316,14 +370,14 @@
 
     .btn-primary {
       background-color: var(--primary-color);
-      color: white;
-      box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+      color: var(--secondary-color);
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
     }
 
     .btn-primary:hover {
-      background-color: var(--secondary-color);
+      background-color: var(--primary-dark);
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
     }
 
     .btn-outline-primary {
@@ -365,11 +419,11 @@
     }
 
     .confirmation-content {
-      background: white;
+      background: var(--card-bg);
       border-radius: 20px;
       width: 90%;
       max-width: 450px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 20px 50px var(--shadow-color);
       transform: scale(0.9);
       transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       overflow: hidden;
@@ -381,10 +435,10 @@
     }
 
     .confirmation-header {
-      background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
       padding: 25px;
       text-align: center;
-      color: white;
+      color: var(--secondary-color);
       position: relative;
     }
 
@@ -438,14 +492,14 @@
     }
 
     .confirmation-btn-primary {
-      background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-      color: white;
-      box-shadow: 0 4px 15px rgba(67, 97, 238, 0.4);
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+      color: var(--secondary-color);
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
     }
 
     .confirmation-btn-primary:hover {
       transform: translateY(-3px);
-      box-shadow: 0 8px 25px rgba(67, 97, 238, 0.5);
+      box-shadow: 0 8px 25px rgba(255, 215, 0, 0.5);
     }
 
     .confirmation-btn-outline {
@@ -468,7 +522,7 @@
       color: white;
       padding: 16px 24px;
       border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 10px 25px var(--shadow-color);
       z-index: 1050;
       display: flex;
       align-items: center;
@@ -506,7 +560,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background-color: rgba(255, 255, 255, 0.8);
+      background-color: rgba(0, 0, 0, 0.7);
       z-index: 1200;
       justify-content: center;
       align-items: center;
@@ -547,7 +601,7 @@
       font-size: 1.8rem;
       font-weight: 600;
       margin-bottom: 15px;
-      color: var(--dark-color);
+      color: var(--primary-color);
     }
 
     .success-text {
@@ -603,6 +657,34 @@
       color: var(--danger-color);
     }
 
+    /* Checkbox styling */
+    .form-check-input {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+    }
+
+    .form-check-label {
+      color: var(--text-color);
+    }
+
+    /* Modal styling */
+    .modal-content {
+      background-color: var(--card-bg);
+      color: var(--text-color);
+    }
+
+    .modal-header {
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-footer {
+      border-top: 1px solid var(--border-color);
+    }
+
+    .btn-close {
+      filter: invert(1);
+    }
+
     /* Responsive Design */
     @media (max-width: 768px) {
       .container {
@@ -637,11 +719,23 @@
       .welcome-btn, .confirmation-btn {
         width: 100%;
       }
+      
+      .theme-toggle {
+        top: 10px;
+        right: 10px;
+        width: 35px;
+        height: 35px;
+      }
     }
   </style>
 </head>
 
 <body>
+  <!-- Theme Toggle Button -->
+  <button class="theme-toggle" id="themeToggle">
+    <i class="bi bi-moon-fill" id="themeIcon"></i>
+  </button>
+
   <!-- Welcome Popup (shown on first load) -->
   <div class="welcome-popup" id="welcomePopup">
     <div class="welcome-content">
@@ -874,6 +968,26 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
+      // Theme Toggle Functionality
+      const themeToggle = document.getElementById('themeToggle');
+      const themeIcon = document.getElementById('themeIcon');
+      const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+      
+      // Check for saved theme preference or use system preference
+      const currentTheme = localStorage.getItem('theme');
+      if (currentTheme === 'dark' || (!currentTheme && prefersDarkScheme.matches)) {
+        document.body.classList.add('dark-theme');
+        themeIcon.className = 'bi bi-sun-fill';
+      }
+      
+      // Toggle theme on button click
+      themeToggle.addEventListener('click', function() {
+        document.body.classList.toggle('dark-theme');
+        const isDark = document.body.classList.contains('dark-theme');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        themeIcon.className = isDark ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+      });
+
       // Create additional bubbles for more animation
       const bubblesContainer = document.querySelector('.bubbles');
       for (let i = 0; i < 10; i++) {
