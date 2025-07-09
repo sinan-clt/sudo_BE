@@ -689,6 +689,13 @@ def activate_id(request, qr_id):
     except Exception as e:
         return render(request, 'error.html', {'error': str(e)})
 
+from django.http import JsonResponse
+from django.shortcuts import render, redirect
+from django.views.decorators.csrf import ensure_csrf_cookie
+from firebase_admin import firestore, messaging
+from twilio.rest import Client
+from django.conf import settings
+
 @ensure_csrf_cookie
 def send_notification(request, qr_id):
     try:
@@ -728,6 +735,7 @@ def send_notification(request, qr_id):
                 reason = data.get('reason')
                 plate_digits = data.get('plate_digits')
                 user_phone = data.get('user_phone', '')
+                notification_method = data.get('notification_method', 'push')
                 
                 # Validate plate digits
                 if plate_digits != vehicle_data.get('registrationNumber', '')[-4:]:
@@ -736,42 +744,83 @@ def send_notification(request, qr_id):
                         'message': 'The plate number does not match. Please check you are entering the right plate number.'
                     })
                 
-                # Get the FCM token from user data
-                fcm_token = user_data.get('fcmToken')
-                
-                if not fcm_token:
-                    return JsonResponse({
-                        'status': 'error', 
-                        'message': 'User does not have a valid FCM token.'
-                    })
-
-                # Create the notification message
-                message = messaging.Message(
-                    notification=messaging.Notification(
-                        title="Vehicle Alert",
-                        body=reason,
-                    ),
-                    token=fcm_token,
-                    data={
-                        'vehicleId': qr_data['vehicleID'],
-                        'qrId': qr_id,
-                        'notificationType': 'vehicle_alert'
-                    }
-                )
-
-                # Send the notification
-                try:
-                    response = messaging.send(message)
+                # Handle different notification methods
+                if notification_method == 'push':
+                    # Existing push notification code
+                    fcm_token = user_data.get('fcmToken')
                     
-                    return JsonResponse({
-                        'status': 'success', 
-                        'message': 'We have sent your message to the vehicle owner.'
-                    })
-                except Exception as e:
-                    return JsonResponse({
-                        'status': 'error', 
-                        'message': f'Failed to send notification: {str(e)}'
-                    })
+                    if not fcm_token:
+                        return JsonResponse({
+                            'status': 'error', 
+                            'message': 'User does not have a valid FCM token.'
+                        })
+
+                    message = messaging.Message(
+                        notification=messaging.Notification(
+                            title="Vehicle Alert",
+                            body=reason,
+                        ),
+                        token=fcm_token,
+                        data={
+                            'vehicleId': qr_data['vehicleID'],
+                            'qrId': qr_id,
+                            'notificationType': 'vehicle_alert'
+                        }
+                    )
+
+                    try:
+                        response = messaging.send(message)
+                        return JsonResponse({
+                            'status': 'success', 
+                            'message': 'We have sent your message to the vehicle owner.'
+                        })
+                    except Exception as e:
+                        return JsonResponse({
+                            'status': 'error', 
+                            'message': f'Failed to send notification: {str(e)}'
+                        })
+                
+                elif notification_method in ['call', 'sms']:
+                    try:
+                        # Initialize Twilio client
+                        twilio_client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+                        owner_phone = user_data.get('contactNumber', '')
+                        
+                        if not owner_phone:
+                            return JsonResponse({
+                                'status': 'error',
+                                'message': 'Owner does not have a valid phone number registered.'
+                            })
+                        
+                        if notification_method == 'sms':
+                            # Send SMS
+                            message = twilio_client.messages.create(
+                                body=f"Vehicle Alert: {reason}\n\nFrom: {user_phone or 'Anonymous'}",
+                                from_=settings.TWILIO_PHONE_NUMBER,
+                                to=owner_phone
+                            )
+                            return JsonResponse({
+                                'status': 'success',
+                                'message': 'SMS sent successfully to the vehicle owner.'
+                            })
+                        
+                        elif notification_method == 'call':
+                            # Make phone call
+                            call = twilio_client.calls.create(
+                                twiml=f'<Response><Say>Hello, this is an important message about your vehicle. {reason}. The person trying to reach you provided this number: {user_phone or "not provided"}. Thank you from Sudo.</Say></Response>',
+                                from_=settings.TWILIO_PHONE_NUMBER,
+                                to=owner_phone
+                            )
+                            return JsonResponse({
+                                'status': 'success',
+                                'message': 'Phone call initiated successfully to the vehicle owner.'
+                            })
+                    
+                    except Exception as e:
+                        return JsonResponse({
+                            'status': 'error',
+                            'message': f'Failed to send {notification_method}: {str(e)}'
+                        })
 
         # Render the initial page with vehicle data
         context = {
@@ -785,7 +834,6 @@ def send_notification(request, qr_id):
     
     except Exception as e:
         return render(request, 'error.html', {'error': str(e)})
-
 
 # Define status mapping
 STATUS_MAPPING = {

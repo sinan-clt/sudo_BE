@@ -412,6 +412,29 @@
       border-radius: 12px;
     }
 
+    /* Notification Method Options */
+    .method-option {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 15px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+      margin-bottom: 15px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .method-option:hover {
+      background-color: rgba(67, 97, 238, 0.05);
+      border-color: rgba(67, 97, 238, 0.3);
+    }
+
+    .method-option.selected {
+      background-color: rgba(67, 97, 238, 0.1);
+      border-color: #4361ee;
+    }
+
     /* Animations */
     @keyframes fadeIn {
       from { opacity: 0; }
@@ -578,6 +601,45 @@
     {% endif %}
   </div>
 
+  <!-- Notification Method Modal -->
+  <div class="modal-overlay" id="methodModal">
+    <div class="modal-content">
+      <h4 class="modal-title">Select Notification Method</h4>
+      <p style="text-align: center; color: #666; margin-bottom: 20px;">
+        How would you like to notify the vehicle owner?
+      </p>
+      
+      <div class="method-options" style="margin-bottom: 25px;">
+        <div class="method-option" onclick="selectMethod('push')">
+          <i class="bi bi-bell-fill" style="font-size: 1.5rem; color: #4361ee;"></i>
+          <span>Push Notification</span>
+        </div>
+        
+        <div class="method-option" onclick="selectMethod('sms')">
+          <i class="bi bi-chat-text-fill" style="font-size: 1.5rem; color: #4361ee;"></i>
+          <span>Send SMS Message</span>
+        </div>
+        
+        <div class="method-option" onclick="selectMethod('call')">
+          <i class="bi bi-telephone-fill" style="font-size: 1.5rem; color: #4361ee;"></i>
+          <span>Make Phone Call</span>
+        </div>
+      </div>
+      
+      <!-- Phone number input (shown only for SMS/Call) -->
+      <div id="phoneInputContainer" style="display: none; margin-top: 20px;">
+        <label style="display: block; margin-bottom: 8px; color: #666;">Your phone number (optional):</label>
+        <input type="tel" class="form-control" id="userPhone" placeholder="+1234567890">
+        <small style="color: #999; display: block; margin-top: 5px;">We'll share this with the owner so they can contact you back.</small>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="methodCancelBtn" style="background: #f1f1f1; color: #333;">Cancel</button>
+        <button class="btn btn-primary" id="methodConfirmBtn">Continue</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Plate Verification Modal -->
   <div class="modal-overlay" id="plateModal">
     <div class="modal-content">
@@ -614,6 +676,11 @@
   <script>
     // DOM Elements
     const notifyBtn = document.getElementById('notifyBtn');
+    const methodModal = document.getElementById('methodModal');
+    const methodCancelBtn = document.getElementById('methodCancelBtn');
+    const methodConfirmBtn = document.getElementById('methodConfirmBtn');
+    const phoneInputContainer = document.getElementById('phoneInputContainer');
+    const userPhone = document.getElementById('userPhone');
     const plateModal = document.getElementById('plateModal');
     const cancelBtn = document.getElementById('cancelBtn');
     const confirmBtn = document.getElementById('confirmBtn');
@@ -626,6 +693,7 @@
     
     // Selected reason and vehicle data
     let selectedReason = '';
+    let selectedMethod = 'push';
     const vehicleData = {
       model: "{{ vehicle_data.model|default:'' }}",
       registrationNumber: "{{ vehicle_data.registrationNumber|default:'' }}"
@@ -676,7 +744,27 @@
       }
     }
 
-    // Show modal when Notify button is clicked
+    // Function to select notification method
+    function selectMethod(method) {
+      selectedMethod = method;
+      const methodOptions = document.querySelectorAll('.method-option');
+      
+      methodOptions.forEach(option => {
+        option.classList.remove('selected');
+        if (option.getAttribute('onclick').includes(method)) {
+          option.classList.add('selected');
+        }
+      });
+      
+      // Show phone input for SMS/Call
+      if (method === 'sms' || method === 'call') {
+        phoneInputContainer.style.display = 'block';
+      } else {
+        phoneInputContainer.style.display = 'none';
+      }
+    }
+
+    // Show method modal when Notify button is clicked
     notifyBtn.addEventListener('click', function() {
       if (!selectedReason) {
         showToast('Please select a reason first', 'error');
@@ -689,10 +777,21 @@
         return;
       }
 
+      methodModal.style.display = 'flex';
+    });
+
+    // Hide method modal when Cancel button is clicked
+    methodCancelBtn.addEventListener('click', function() {
+      methodModal.style.display = 'none';
+    });
+
+    // Method modal confirm button
+    methodConfirmBtn.addEventListener('click', function() {
+      methodModal.style.display = 'none';
       plateModal.style.display = 'flex';
     });
 
-    // Hide modal when Cancel button is clicked
+    // Hide plate modal when Cancel button is clicked
     cancelBtn.addEventListener('click', function() {
       plateModal.style.display = 'none';
     });
@@ -740,6 +839,7 @@
     // Function to send notification to server
     function sendNotification(message, plateDigits) {
       const csrfToken = "{{ csrf_token }}";
+      const phoneNumber = userPhone.value.trim();
       
       if (!csrfToken) {
         console.error('CSRF token not found');
@@ -760,7 +860,9 @@
         },
         body: JSON.stringify({
           reason: message,
-          plate_digits: plateDigits
+          plate_digits: plateDigits,
+          user_phone: phoneNumber,
+          notification_method: selectedMethod
         })
       })
       .then(response => {
@@ -784,6 +886,8 @@
           charCount.textContent = '0';
           plateDigits.value = '';
           plateModal.style.display = 'none';
+          userPhone.value = '';
+          selectedMethod = 'push';
         } else {
           throw new Error(data.message || 'Unknown error occurred');
         }
