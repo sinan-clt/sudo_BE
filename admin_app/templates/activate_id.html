@@ -955,8 +955,8 @@
         
         // Validate phone number format (simple check for 10 digits)
         const phone = document.getElementById('contactNumber');
-        if (phone.value && !/^\d{10}$/.test(phone.value)) {
-          showFieldError(phone, 'Enter a valid 10-digit mobile number');
+        if (phone.value && !/^\+91\d{10}$/.test(phone.value)) {
+          showFieldError(phone, 'Enter a valid mobile number in +91XXXXXXXXXX format');
           isValid = false;
         }
         

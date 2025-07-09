@@ -553,12 +553,13 @@ def activate_id(request, qr_id):
                         user_id = user_doc.id
                         
                         # Verify phone matches existing user
-                        if user_data.get('contactNumber') != data['contactNumber']:
+                        if user_data.get('contactNumber', '').replace(' ', '') != data['contactNumber'].replace(' ', ''):
                             return JsonResponse({
                                 'status': 'error',
                                 'message': 'Phone number does not match existing account',
                                 'errors': {'contactNumber': 'This phone number does not match your existing account'}
                             }, status=400)
+
                             
                     elif user_exists_in_auth and not user_exists_in_firestore:
                         # Edge case: user in auth but not in firestore - shouldn't happen
