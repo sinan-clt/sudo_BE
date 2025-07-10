@@ -100,6 +100,42 @@ def dashboard(request):
     }
     return render(request, 'dashboard.html', context)
 
+from django.shortcuts import render, redirect
+from io import BytesIO
+import qrcode
+import base64
+import uuid
+import datetime
+from django.http import HttpResponse
+from PIL import Image as PILImage, ImageDraw, ImageFont
+import os
+from django.conf import settings
+
+def get_font(font_size=20):
+    """Helper function to get a font with fallback options"""
+    try:
+        # Try built-in default font first
+        try:
+            return ImageFont.truetype("arial.ttf", font_size)
+        except:
+            # Try common system font paths
+            font_paths = [
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux
+                "/Library/Fonts/Arial.ttf",  # macOS
+                "C:/Windows/Fonts/arial.ttf",  # Windows
+                os.path.join(settings.BASE_DIR, 'static', 'fonts', 'arial.ttf'),
+                os.path.join(settings.BASE_DIR, 'sudo_admin', 'static', 'fonts', 'arial.ttf')
+            ]
+            
+            for path in font_paths:
+                if os.path.exists(path):
+                    return ImageFont.truetype(path, font_size)
+            
+            # Final fallback to default font
+            return ImageFont.load_default()
+    except Exception as e:
+        print(f"Font loading error: {str(e)}")
+        return ImageFont.load_default()
 
 def generate_qr(request):
     if not request.session.get('admin'):
@@ -117,22 +153,55 @@ def generate_qr(request):
                 try:
                     # Generate unique IDs
                     qr_id = base64.urlsafe_b64encode(uuid.uuid4().bytes).decode('utf-8')[:16]
-                    vehicle_id = base64.urlsafe_b64encode(uuid.uuid4().bytes).decode('utf-8')[:12]
                     
-                    # Create QR code
-                    registration_url = f"{base_domain}/send-notification/{qr_id}/"
-                    qr_code = qrcode.make(registration_url)
+                    # Create yellow QR code on black background
+                    qr = qrcode.QRCode(
+                        version=3,  # Increased version for larger capacity
+                        error_correction=qrcode.constants.ERROR_CORRECT_H,
+                        box_size=12,  # Larger box size for bigger QR code
+                        border=2,  # Smaller border to maximize QR code area
+                    )
+                    qr.add_data(f"{base_domain}/send-notification/{qr_id}/")
+                    qr.make(fit=True)
+                    qr_img = qr.make_image(fill_color="#dcbd1f", back_color="#161416")
+
+                    # Open template image
+                    template_path = os.path.join(settings.BASE_DIR, 'sudo_admin', 'static', 'images', 'qr_template.jpg')
+                    if not os.path.exists(template_path):
+                        return render(request, 'generate_qr.html', {
+                            'error': f'Template image not found at: {template_path}'
+                        })
+
+                    template_img = PILImage.open(template_path).convert('RGB')
+                    template_width, template_height = template_img.size
+
+                    # Calculate QR code size to occupy 75% of template height
+                    qr_size = (int(template_height * 0.75), int(template_height * 0.75))
+
+                    # Position QR code on left side with precise margins
+                    left_margin = int(template_width * 0.07)  # 5% from left edge
+                    qr_position = (
+                        left_margin,  # Left aligned with margin
+                        (template_height - qr_size[1]) // 2  # Perfect vertical center
+                    )
+
+                    # High-quality resize and paste
+                    qr_img = qr_img.resize(qr_size, PILImage.Resampling.LANCZOS)
+                    final_img = template_img.copy()
+                    final_img.paste(qr_img, qr_position)
+
+                    # Save to buffer
                     buffer = BytesIO()
-                    qr_code.save(buffer, format="PNG")
+                    final_img.save(buffer, format="PNG")
                     qr_code_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
                     
-                    # Save to Firestore qrcodes collection
+                    # Save to Firestore
                     qr_data_firestore = {
                         'createdBy': 'admin',
                         'createdDateTime': datetime.datetime.now(tz=datetime.timezone.utc),
                         'isAssigned': False,
                         'qrId': qr_id,
-                        'vehicleID': '',  # Add vehicleID reference
+                        'vehicleID': '',
                         'userID': ''
                     }
                     
@@ -150,15 +219,24 @@ def generate_qr(request):
                         'error': f'Failed to generate QR: {str(e)}'
                     })
         else:
-            # External QR generation remains the same
+            # External QR generation
             count = int(request.POST.get('external_count', 1))
             registration_url = f"{base_domain}/register-external-user/"
             
             for _ in range(count):
                 try:
-                    qr_code = qrcode.make(registration_url)
+                    qr = qrcode.QRCode(
+                        version=1,
+                        error_correction=qrcode.constants.ERROR_CORRECT_H,
+                        box_size=10,
+                        border=4,
+                    )
+                    qr.add_data(registration_url)
+                    qr.make(fit=True)
+                    qr_img = qr.make_image(fill_color="black", back_color="white")
+                    
                     buffer = BytesIO()
-                    qr_code.save(buffer, format="PNG")
+                    qr_img.save(buffer, format="PNG")
                     qr_code_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
                     
                     qr_data.append({
@@ -167,14 +245,13 @@ def generate_qr(request):
                     })
                 except Exception as e:
                     return render(request, 'generate_qr.html', {
-                        'error': f'Failed to generate QR: {str(e)}'
+                        'error': f'Failed to generate external QR: {str(e)}'
                     })
 
         request.session['qr_data'] = qr_data
         return render(request, 'generate_qr.html', {'qr_data': qr_data})
 
     return render(request, 'generate_qr.html')
-
 
 def download_qr_pdf(request):
     if not request.session.get('admin') or 'qr_data' not in request.session:
@@ -228,7 +305,6 @@ def download_qr_pdf(request):
     row = []
 
     for qr in qr_data:
-        # Updated to use qrId instead of userId
         label = f"QR ID: {qr['qrId']}" if qr['type'] == 'user' else "External Registration"
         
         qr_image = Image(BytesIO(base64.b64decode(qr['qr_code_base64'])), width=150, height=150)
@@ -258,7 +334,6 @@ def download_qr_pdf(request):
     buffer.close()
     response.write(pdf)
     return response
-
 
 def register_user(request):
     if not request.session.get('admin'):
