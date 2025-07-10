@@ -178,7 +178,9 @@ EMAIL_TIMEOUT = 30  # Connection timeout in seconds
 
 BASE_DOMAIN='sudoapp.pythonanywhere.com'
 
-
+TWILIO_ACCOUNT_SID = 'ACf0c95d735353e43442a3149a90adfcef'  
+TWILIO_AUTH_TOKEN = '0dfe5c52f93d1fe59f9e1e8a406584df' 
+TWILIO_PHONE_NUMBER = '+19895205533' 
 
 
 FEEDBACK_EMAIL = 'aslamsalman1211@gmail.com'
