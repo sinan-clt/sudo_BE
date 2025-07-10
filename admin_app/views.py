@@ -3,6 +3,7 @@ import datetime
 import uuid, os
 import random
 import string
+import json
 
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
@@ -995,3 +996,94 @@ def send_welcome_email(email, name, password):
         recipient_list=[email],
         fail_silently=False
     )
+
+
+@csrf_exempt
+def send_feedback(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            # Prepare email content
+            context = {
+                'name': data.get('name', 'User'),
+                'email': data.get('email', ''),
+                'vehicle': data.get('vehicle', ''),
+                'rating': data.get('rating', 0),
+                'feedback': data.get('feedback', 'No feedback provided'),
+            }
+            
+            # Render email templates
+            subject = f"New Feedback Received - Rating: {context['rating']}/5"
+            text_content = render_to_string('feedback_email.txt', context)
+            html_content = render_to_string('feedback_email.html', context)
+            
+            # Send email to admin
+            send_mail(
+                subject,
+                text_content,
+                settings.DEFAULT_FROM_EMAIL,
+                [settings.FEEDBACK_EMAIL],
+                html_message=html_content,
+                fail_silently=False,
+            )
+            
+            # Send confirmation to user
+            if context['email']:
+                user_subject = "Thank You for Your Feedback"
+                user_text = render_to_string('feedback_user_email.txt', context)
+                user_html = render_to_string('feedback_user_email.html', context)
+                
+                send_mail(
+                    user_subject,
+                    user_text,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [context['email']],
+                    html_message=user_html,
+                    fail_silently=False,
+                )
+            
+            return JsonResponse({'status': 'success'})
+            
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
+
+@csrf_exempt
+def send_feedback_notify(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            # Prepare email content
+            context = {
+                'contact_reason': data.get('contact_reason', 'Not specified'),
+                'feedback': data.get('feedback', 'No feedback provided'),
+                'rating': data.get('rating', 0),
+                'vehicle_model': data.get('vehicle_model', 'Unknown vehicle'),
+                'notification_method': data.get('notification_method', 'push')
+            }
+            
+            # Render email templates
+            subject = f"New Feedback Received - Rating: {context['rating']}/5"
+            text_content = render_to_string('feedback_email_notify.txt', context)
+            html_content = render_to_string('feedback_email_notify.html', context)
+            
+            # Send email to admin
+            send_mail(
+                subject,
+                text_content,
+                settings.DEFAULT_FROM_EMAIL,
+                [settings.FEEDBACK_EMAIL],
+                html_message=html_content,
+                fail_silently=False,
+            )
+            
+            return JsonResponse({'status': 'success'})
+            
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)

@@ -15,5 +15,7 @@ urlpatterns = [
     path('send-notification/<str:qr_id>/', views.check_id_enabled, name='check_id_enabled'),
     path('activate-id/<str:qr_id>/', views.activate_id, name='activate_id'),
     path('send-notification-final/<str:qr_id>/', views.send_notification, name='send_notification'),
+    path('send-feedback/', views.send_feedback, name='send_feedback'),
+    path('send-feedback-notify/', views.send_feedback_notify, name='send_feedback_notify'),
 
 ]

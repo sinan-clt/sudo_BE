@@ -100,7 +100,80 @@
     .theme-toggle:hover {
       transform: scale(1.1);
     }
-
+    .feedback-form {
+      display: none;
+      margin-top: 30px;
+      padding: 25px;
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 5px 15px var(--shadow-color);
+      border-left: 4px solid var(--primary-color);
+    }
+    
+    .feedback-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--primary-color);
+      text-align: center;
+    }
+    
+    .feedback-textarea {
+      width: 100%;
+      min-height: 150px;
+      padding: 15px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background-color: var(--card-bg);
+      color: var(--text-color);
+      margin-bottom: 20px;
+      resize: vertical;
+    }
+    
+    .feedback-textarea:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+      outline: none;
+    }
+    
+    .rating-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 25px;
+      gap: 10px;
+    }
+    
+    .rating-star {
+      font-size: 2rem;
+      color: var(--gray-color);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .rating-star:hover,
+    .rating-star.active {
+      color: var(--primary-color);
+      transform: scale(1.1);
+    }
+    
+    .feedback-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+    }
+    
+    .feedback-thankyou {
+      display: none;
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .feedback-thankyou-icon {
+      font-size: 3rem;
+      color: var(--success-color);
+      margin-bottom: 15px;
+      animation: pulse 2s infinite;
+    }
     /* Welcome Popup Styles */
     .welcome-popup {
       position: fixed;
@@ -865,14 +938,57 @@
         </form>
       </div>
 
-      <!-- Success Message (hidden initially) -->
+      <!-- Success Message with Feedback Form -->
       <div id="successMessage" class="success-message">
         <div class="success-icon">
           <i class="bi bi-check-circle-fill"></i>
         </div>
         <h3 class="success-title">Activation Successful!</h3>
         <p class="success-text">Your vehicle QR code is now active. Others can scan it to contact you.</p>
-        <button class="btn btn-primary" id="continueBtn">
+        
+        <!-- Feedback Form -->
+        <div class="feedback-form" id="feedbackForm">
+          <h4 class="feedback-title">Help Us Improve</h4>
+          <p style="text-align: center; margin-bottom: 20px; color: var(--gray-color);">
+            We'd love to hear your feedback about the activation process
+          </p>
+          
+          <div class="form-group">
+            <label for="feedbackText" class="form-label">Your Feedback</label>
+            <textarea class="feedback-textarea" id="feedbackText" placeholder="Tell us about your experience..."></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Rating</label>
+            <div class="rating-container">
+              <i class="bi bi-star-fill rating-star" data-rating="1"></i>
+              <i class="bi bi-star-fill rating-star" data-rating="2"></i>
+              <i class="bi bi-star-fill rating-star" data-rating="3"></i>
+              <i class="bi bi-star-fill rating-star" data-rating="4"></i>
+              <i class="bi bi-star-fill rating-star" data-rating="5"></i>
+            </div>
+          </div>
+          
+          <div class="feedback-buttons">
+            <button class="btn btn-outline-primary" id="skipFeedback">
+              Skip
+            </button>
+            <button class="btn btn-primary" id="submitFeedback">
+              Submit Feedback
+            </button>
+          </div>
+        </div>
+        
+        <!-- Thank You Message -->
+        <div class="feedback-thankyou" id="thankYouMessage">
+          <div class="feedback-thankyou-icon">
+            <i class="bi bi-emoji-smile-fill"></i>
+          </div>
+          <h4>Thank You for Your Feedback!</h4>
+          <p>We appreciate you taking the time to help us improve.</p>
+        </div>
+        
+        <button class="btn btn-primary" id="continueBtn" style="margin-top: 20px;">
           <i class="bi bi-arrow-right"></i> Continue
         </button>
       </div>
@@ -1016,7 +1132,16 @@
       const successMessage = document.getElementById('successMessage');
       const continueBtn = document.getElementById('continueBtn');
       
+      // Feedback elements
+      const ratingStars = document.querySelectorAll('.rating-star');
+      const feedbackText = document.getElementById('feedbackText');
+      const submitFeedback = document.getElementById('submitFeedback');
+      const skipFeedback = document.getElementById('skipFeedback');
+      const feedbackForm = document.getElementById('feedbackForm');
+      const thankYouMessage = document.getElementById('thankYouMessage');
+      
       let formData = {};
+      let selectedRating = 0;
 
       // Handle welcome popup actions
       cancelWelcome.addEventListener('click', function() {
@@ -1130,6 +1255,11 @@
                     'Others can scan it to contact you.';
             }
             
+            // Show feedback form after a short delay
+            setTimeout(() => {
+              feedbackForm.style.display = 'block';
+            }, 500);
+            
             // Redirect after delay if needed
             if (data.redirect_url) {
               continueBtn.addEventListener('click', function() {
@@ -1159,6 +1289,81 @@
         .finally(() => {
           loadingSpinner.classList.remove('active');
         });
+      });
+
+      // Rating star selection
+      ratingStars.forEach(star => {
+        star.addEventListener('click', function() {
+          const rating = parseInt(this.getAttribute('data-rating'));
+          selectedRating = rating;
+          
+          // Update star colors
+          ratingStars.forEach((s, index) => {
+            if (index < rating) {
+              s.classList.add('active');
+            } else {
+              s.classList.remove('active');
+            }
+          });
+        });
+      });
+      
+      // Submit feedback
+      submitFeedback.addEventListener('click', function() {
+        const feedback = feedbackText.value.trim();
+        
+        // Show loading spinner
+        loadingSpinner.classList.add('active');
+        
+        // Prepare feedback data
+        const feedbackData = {
+          feedback: feedback,
+          rating: selectedRating,
+          email: formData.emailAddress,
+          name: formData.fullName,
+          vehicle: `${formData.make} ${formData.model}`
+        };
+        
+        // Send feedback to server
+        fetch('/send-feedback/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify(feedbackData)
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Feedback submission failed');
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.status === 'success') {
+            // Hide feedback form and show thank you message
+            feedbackForm.style.display = 'none';
+            thankYouMessage.style.display = 'block';
+            
+            // Move continue button down
+            continueBtn.style.marginTop = '30px';
+          } else {
+            throw new Error(data.message || 'Feedback submission failed');
+          }
+        })
+        .catch(error => {
+          showToast('Failed to submit feedback. Please try again.', 'error');
+        })
+        .finally(() => {
+          loadingSpinner.classList.remove('active');
+        });
+      });
+      
+      // Skip feedback
+      skipFeedback.addEventListener('click', function() {
+        feedbackForm.style.display = 'none';
+        continueBtn.style.marginTop = '30px';
       });
 
       // Helper function to show field errors
