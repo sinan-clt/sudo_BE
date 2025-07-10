@@ -59,4 +59,5 @@ twilio==9.6.4
 typing_extensions==4.14.1
 uritemplate==4.2.0
 urllib3==2.5.0
+whitenoise==6.6.0
 yarl==1.20.1
