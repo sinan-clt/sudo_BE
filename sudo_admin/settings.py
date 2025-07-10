@@ -164,7 +164,7 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'default'
 
 
-# Email Configuration (Updated and Working Version)
+# Email Configuration (Updated and Working Version) 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'  # Gmail SMTP server address
 EMAIL_PORT = 587  # Port for TLS
