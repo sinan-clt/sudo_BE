@@ -28,13 +28,12 @@ DEBUG = True
 ALLOWED_HOSTS = ['sudobe-production.up.railway.app','*']
 
 CSRF_TRUSTED_ORIGINS = [
-    'sudobe-production.up.railway.app',
-    'https://*.railway.app'
+    'https://sudobe-production.up.railway.app',
+    'http://sudobe-production.up.railway.app'  # Only if you need HTTP support
 ]
 
 CORS_ALLOWED_ORIGINS = [
     'sudobe-production.up.railway.app',
-    'https://*.railway.app'
 ]
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
