@@ -22,7 +22,9 @@ from django.core.mail import send_mail
 from dotenv import load_dotenv
 # from google.cloud import firestore
 
-
+TWILIO_ACCOUNT_SID = 'ACf0c95d735353e43442a3149a90adfcef'  
+TWILIO_AUTH_TOKEN = '0dfe5c52f93d1fe59f9e1e8a406584df'  
+TWILIO_PHONE_NUMBER = '+19895205533'   
 
 # Load environment variables from .env file
 load_dotenv()
@@ -785,7 +787,7 @@ def send_notification(request, qr_id):
                 elif notification_method in ['call', 'sms']:
                     try:
                         # Initialize Twilio client
-                        twilio_client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+                        twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
                         owner_phone = user_data.get('contactNumber', '')
                         
                         if not owner_phone:
@@ -798,7 +800,7 @@ def send_notification(request, qr_id):
                             # Send SMS
                             message = twilio_client.messages.create(
                                 body=f"Vehicle Alert: {reason}\n\nFrom: {user_phone or 'Anonymous'}",
-                                from_=settings.TWILIO_PHONE_NUMBER,
+                                from_=TWILIO_PHONE_NUMBER,
                                 to=owner_phone
                             )
                             return JsonResponse({
@@ -810,7 +812,7 @@ def send_notification(request, qr_id):
                             # Make phone call
                             call = twilio_client.calls.create(
                                 twiml=f'<Response><Say>Hello, this is an important message about your vehicle. {reason}. The person trying to reach you provided this number: {user_phone or "not provided"}. Thank you from Sudo.</Say></Response>',
-                                from_=settings.TWILIO_PHONE_NUMBER,
+                                from_=TWILIO_PHONE_NUMBER,
                                 to=owner_phone
                             )
                             return JsonResponse({
