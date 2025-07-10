@@ -262,74 +262,97 @@ def download_qr_pdf(request):
     response['Content-Disposition'] = 'attachment; filename="qr_codes.pdf"'
 
     from reportlab.lib.pagesizes import letter
-    from reportlab.platypus import SimpleDocTemplate, Image, Paragraph, Spacer, Table, TableStyle
+    from reportlab.platypus import SimpleDocTemplate, Image, Paragraph, Spacer, Table, TableStyle, PageBreak
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib import colors
+    from reportlab.lib.units import inch
     import io
     import pytz
 
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    # Set minimal margins for maximum width
+    doc = SimpleDocTemplate(buffer, pagesize=letter,
+                          leftMargin=0.3*inch,  # Reduced margins
+                          rightMargin=0.3*inch,
+                          topMargin=0.4*inch,
+                          bottomMargin=0.4*inch)
     elements = []
 
-    styles = getSampleStyleSheet()
+    # Custom styles
     title_style = ParagraphStyle(
         name="Title",
-        fontSize=24,
-        alignment=1,
+        fontSize=14,
+        alignment=1,  # CENTER
         fontName="Helvetica-Bold",
-        spaceAfter=12,
+        spaceAfter=4,
         textColor=colors.black
     )
+    
     date_style = ParagraphStyle(
         name="Date",
-        fontSize=12,
-        alignment=1,
+        fontSize=10,
+        alignment=1,  # CENTER
         fontName="Helvetica",
-        spaceBefore=18,
-        spaceAfter=24,
+        spaceAfter=12,
         textColor=colors.darkgrey
     )
-
-    title = Paragraph("Generated QR Codes", title_style)
-    elements.append(title)
     
+    qr_id_style = ParagraphStyle(
+        name="QR_ID",
+        fontSize=12,
+        alignment=1,  # CENTER
+        fontName="Helvetica-Bold",
+        spaceBefore=12,  # Increased padding above ID
+        textColor=colors.black
+    )
+
+    # Title and date (only on first page)
+    elements.append(Paragraph("Generated QR Codes", title_style))
     ist = pytz.timezone('Asia/Kolkata')
     current_datetime = datetime.datetime.now(ist)
     date_time_string = current_datetime.strftime("%A, %B %d, %Y - %I:%M %p")
-    date_time_paragraph = Paragraph(f"Created on: {date_time_string}", date_style)
-    elements.append(date_time_paragraph)
-    elements.append(Spacer(1, 18))
+    elements.append(Paragraph(f"Created on: {date_time_string}", date_style))
+    elements.append(Spacer(1, 24))
 
-    data = []
-    row = []
+    # Calculate maximum possible width (90% of available space)
+    page_width = letter[0] - doc.leftMargin - doc.rightMargin
+    qr_width = min(4.0*inch, page_width * 0.9)  # Wider format (max 4 inches)
+    qr_height = qr_width * 0.5  # Maintain aspect ratio (2:1 width:height)
+    items_per_page = 3  # 3 QR codes per page
 
-    for qr in qr_data:
-        label = f"QR ID: {qr['qrId']}" if qr['type'] == 'user' else "External Registration"
+    for i, qr in enumerate(qr_data):
+        if i > 0 and i % items_per_page == 0:
+            elements.append(PageBreak())
+            # Reset margins for new page
+            doc.leftMargin = 0.3*inch
+            doc.rightMargin = 0.3*inch
+
+        # Create extra wide QR code image
+        qr_img = Image(BytesIO(base64.b64decode(qr['qr_code_base64'])),
+                      width=qr_width, height=qr_height)
         
-        qr_image = Image(BytesIO(base64.b64decode(qr['qr_code_base64'])), width=150, height=150)
-        label_paragraph = Paragraph(f"<b>{label}</b>", styles['BodyText'])
+        # Create ID text with padding
+        qr_id = Paragraph(qr.get('qrId', ''), qr_id_style)
         
-        if len(row) < 2:
-            row.append([qr_image, label_paragraph])
-        else:
-            data.append(row)
-            row = [[qr_image, label_paragraph]]
+        # Create content with proper spacing
+        content_table = Table([
+            [qr_img],
+            [Spacer(1, 8)],  # Additional padding
+            [qr_id]
+        ], colWidths=qr_width)
+        
+        content_table.setStyle(TableStyle([
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('LEFTPADDING', (0,0), (-1,-1), 0),
+            ('RIGHTPADDING', (0,0), (-1,-1), 0),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+        ]))
+        
+        elements.append(content_table)
+        elements.append(Spacer(1, 24))  # Space between QR sets
 
-    if row:
-        data.append(row)
-
-    table = Table(data, colWidths=[doc.width/2.2]*2)
-    table.setStyle(TableStyle([
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 12),
-    ]))
-
-    elements.append(table)
     doc.build(elements)
-
     pdf = buffer.getvalue()
     buffer.close()
     response.write(pdf)

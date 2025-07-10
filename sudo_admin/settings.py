@@ -190,7 +190,7 @@ DEFAULT_FROM_EMAIL = 'aslamsalman1211@gmail.com'  # Sender email (same as HOST_U
 SERVER_EMAIL = 'aslamsalman1211@gmail.com'  # For server error notifications
 EMAIL_TIMEOUT = 30  # Connection timeout in seconds
 
-BASE_DOMAIN='https://sudobe-production.up.railway.app/'
+BASE_DOMAIN='https://sudobe-production.up.railway.app'
 
 TWILIO_ACCOUNT_SID = 'ACf0c95d735353e43442a3149a90adfcef'  # Get from Twilio console
 TWILIO_AUTH_TOKEN = '1e57f1b27e6acc6694751819ae441a72'    # Get from Twilio console
