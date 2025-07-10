@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-no=2un6zvm5r&cupj9%k_%zjn)!7#*lyf#ca6mizl28ls#sdxk
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['sudoapp.pythonanywhere.com','*']
+ALLOWED_HOSTS = ['sudobe-production.up.railway.app','*']
 
 
 # Application definition
@@ -176,7 +176,7 @@ DEFAULT_FROM_EMAIL = 'aslamsalman1211@gmail.com'  # Sender email (same as HOST_U
 SERVER_EMAIL = 'aslamsalman1211@gmail.com'  # For server error notifications
 EMAIL_TIMEOUT = 30  # Connection timeout in seconds
 
-BASE_DOMAIN='sudoapp.pythonanywhere.com'
+BASE_DOMAIN='sudobe-production.up.railway.app'
 
 TWILIO_ACCOUNT_SID = 'ACf0c95d735353e43442a3149a90adfcef'  
 TWILIO_AUTH_TOKEN = '0dfe5c52f93d1fe59f9e1e8a406584df' 
