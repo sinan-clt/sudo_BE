@@ -164,7 +164,7 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'default'
 
 
-# Email Configuration (Updated and Working Version) 
+# Email Configuration (Updated and Working Version)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'  # Gmail SMTP server address
 EMAIL_PORT = 587  # Port for TLS
@@ -178,6 +178,10 @@ EMAIL_TIMEOUT = 30  # Connection timeout in seconds
 
 BASE_DOMAIN='sudoapp.pythonanywhere.com'
 
+# Twilio settings
+# TWILIO_ACCOUNT_SID = 'ACf0c95d735353e43442a3149a90adfcef'  # Get from Twilio console
+# TWILIO_AUTH_TOKEN = '0dfe5c52f93d1fe59f9e1e8a406584df'    # Get from Twilio console
+# TWILIO_PHONE_NUMBER = '+19895205533'      # Your Twilio phone number
 
 
 FEEDBACK_EMAIL = 'aslamsalman1211@gmail.com'
