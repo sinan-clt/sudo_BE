@@ -247,11 +247,6 @@
       margin-top: 10px;
     }
 
-    .plate-hash {
-      color: var(--gray-color);
-      letter-spacing: normal;
-    }
-
     /* Reason Selection */
     .reason-list {
       margin-bottom: 30px;
@@ -420,7 +415,133 @@
       border-color: var(--primary-color);
       box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
     }
+    /* Bubble Animation Background */
+    @keyframes floatBubble {
+      0% { transform: translateY(0) rotate(0deg); opacity: 0.8; }
+      50% { transform: translateY(-100px) rotate(180deg); opacity: 1; }
+      100% { transform: translateY(-200px) rotate(360deg); opacity: 0; }
+    }
 
+    :root {
+      --primary-color: #FFD700; /* Gold/Yellow */
+      --primary-dark: #FFC000; /* Darker Gold */
+      --primary-light: #FFF9C4; /* Light Yellow */
+      --secondary-color: #000000; /* Black */
+      --accent-color: #FFEA00; /* Bright Yellow */
+      --success-color: #4CAF50; /* Green */
+      --danger-color: #F44336; /* Red */
+      --dark-color: #212121; /* Dark Gray */
+      --light-color: #FAFAFA; /* Very Light Gray */
+      --gray-color: #757575; /* Medium Gray */
+      --warning-color: #FFC107; /* Amber */
+      
+      /* Theme variables */
+      --bg-color: #FAFAFA;
+      --text-color: #212121;
+      --card-bg: #FFFFFF;
+      --border-color: #E0E0E0;
+      --shadow-color: rgba(0, 0, 0, 0.1);
+      --button-text-color: #000000; /* Black text for buttons */
+    }
+
+    .dark-theme {
+      --primary-color: #FFD700; /* Gold/Yellow remains same */
+      --primary-dark: #FFC000;
+      --primary-light: #333300;
+      --secondary-color: #E0E0E0; /* Light Gray */
+      --accent-color: #FFEA00;
+      --success-color: #4CAF50;
+      --danger-color: #F44336;
+      --dark-color: #E0E0E0; /* Light Gray */
+      --light-color: #121212; /* Very Dark Gray */
+      --gray-color: #B0B0B0; /* Light Gray */
+      --warning-color: #FFC107;
+      
+      --bg-color: #121212;
+      --text-color: #E0E0E0;
+      --card-bg: #1E1E1E;
+      --border-color: #333333;
+      --shadow-color: rgba(0, 0, 0, 0.3);
+      --button-text-color: #000000; /* Black text for buttons remains same */
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 0;
+      color: var(--text-color);
+      background-color: var(--bg-color);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* Theme Toggle Button */
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      background-color: var(--primary-color);
+      color: var(--secondary-color);
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 10px var(--shadow-color);
+      transition: all 0.3s ease;
+    }
+
+    .theme-toggle:hover {
+      transform: scale(1.1);
+    }
+
+    /* Button Styles */
+    .btn {
+      padding: 16px 32px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      border: none;
+      transition: all 0.3s ease;
+      font-size: 1.1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: var(--button-text-color); /* Use button text color variable */
+    }
+
+    .btn-primary {
+      background-color: var(--primary-color);
+      color: var(--button-text-color);
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+    }
+
+    /* Thank You Message */
+    .feedback-thankyou {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: var(--button-text-color); /* Use button text color for consistency */
+    }
+    
+    .feedback-thankyou h4,
+    .feedback-thankyou p {
+      color: var(--button-text-color); /* Ensure text is black in both themes */
+    }
     .modal-footer {
       display: flex;
       justify-content: flex-end;
@@ -713,9 +834,7 @@
       <div class="vehicle-info">
         <div id="vehicleModel" style="color: var(--gray-color);">{{ vehicle_data.model }}</div>
         <div class="plate-number">
-          {% with reg_num=vehicle_data.registrationNumber %}
-            {{ reg_num|slice:":-4" }}<span class="plate-hash">####</span>
-          {% endwith %}
+          {{ vehicle_data.registrationNumber }}
         </div>
       </div>
 
@@ -804,7 +923,6 @@
           </div>
         </div>
         
-        <!-- Thank You Message (hidden initially) -->
         <div class="feedback-thankyou" id="thankYouMessage">
           <div class="feedback-thankyou-icon">
             <i class="bi bi-emoji-smile-fill"></i>
@@ -812,7 +930,6 @@
           <h4>Thank You for Your Feedback!</h4>
           <p>We appreciate you taking the time to help us improve.</p>
         </div>
-
         <div class="info-text">
           <p style="color: var(--primary-color); font-weight: 500;">
             <i class="bi bi-info-circle-fill" style="margin-right: 5px;"></i>
@@ -873,30 +990,6 @@
     </div>
   </div>
 
-  <!-- Plate Verification Modal -->
-  <div class="modal-overlay" id="plateModal">
-    <div class="modal-content">
-      <h4 class="modal-title">Verify Vehicle Plate Number</h4>
-      <p style="text-align: center; color: var(--gray-color); margin-bottom: 20px;">
-        Please enter the last 4 digits of this plate number:
-      </p>
-      
-      <div class="form-group">
-        <div style="text-align: center; margin-bottom: 15px; font-weight: 600; font-size: 1.4rem; letter-spacing: 3px;">
-          {% with reg_num=vehicle_data.registrationNumber %}
-            {{ reg_num|slice:":-4" }}<span style="color: var(--primary-color);"> ####</span>
-          {% endwith %}
-        </div>
-        <input type="text" class="form-control" id="plateDigits" placeholder="Enter last 4 digits" maxlength="4">
-      </div>
-      
-      <div class="modal-footer">
-        <button class="btn btn-secondary" id="cancelBtn">Cancel</button>
-        <button class="btn btn-primary" id="confirmBtn">Send Notification</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Success Modal -->
   <div class="modal-overlay" id="successModal">
     <div class="modal-content">
@@ -950,10 +1043,6 @@
     const methodConfirmBtn = document.getElementById('methodConfirmBtn');
     const phoneInputContainer = document.getElementById('phoneInputContainer');
     const userPhone = document.getElementById('userPhone');
-    const plateModal = document.getElementById('plateModal');
-    const cancelBtn = document.getElementById('cancelBtn');
-    const confirmBtn = document.getElementById('confirmBtn');
-    const plateDigits = document.getElementById('plateDigits');
     const toastNotification = document.getElementById('toastNotification');
     const toastMessage = document.getElementById('toastMessage');
     const customMessageContainer = document.getElementById('customMessageContainer');
@@ -1084,24 +1173,6 @@
     // Method modal confirm button
     methodConfirmBtn.addEventListener('click', function() {
       methodModal.style.display = 'none';
-      plateModal.style.display = 'flex';
-    });
-
-    // Hide plate modal when Cancel button is clicked
-    cancelBtn.addEventListener('click', function() {
-      plateModal.style.display = 'none';
-    });
-
-    // Confirm button click handler
-    confirmBtn.addEventListener('click', function() {
-      const enteredDigits = plateDigits.value.trim();
-      const lastFourDigits = vehicleData.registrationNumber.slice(-4);
-      
-      // Validate plate digits
-      if (enteredDigits !== lastFourDigits) {
-        showToast('Plate number does not match', 'error');
-        return;
-      }
       
       // Prepare the message to send
       let messageToSend = selectedReason;
@@ -1110,7 +1181,7 @@
       }
       
       // Send notification
-      sendNotification(messageToSend, enteredDigits);
+      sendNotification(messageToSend);
     });
 
     // Continue button in success modal
@@ -1196,7 +1267,7 @@
     }
 
     // Function to send notification to server
-    function sendNotification(message, plateDigits) {
+    function sendNotification(message) {
       const csrfToken = "{{ csrf_token }}";
       const phoneNumber = userPhone.value.trim();
       
@@ -1207,8 +1278,8 @@
       }
       
       // Show loading state
-      confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
-      confirmBtn.disabled = true;
+      methodConfirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
+      methodConfirmBtn.disabled = true;
       
       fetch('', {
         method: 'POST',
@@ -1219,7 +1290,6 @@
         },
         body: JSON.stringify({
           reason: message,
-          plate_digits: plateDigits,
           user_phone: phoneNumber,
           notification_method: selectedMethod
         })
@@ -1233,7 +1303,6 @@
       .then(data => {
         if (data.status === 'success') {
           // Show success modal
-          plateModal.style.display = 'none';
           successModal.style.display = 'flex';
           
           // Reset form
@@ -1245,7 +1314,6 @@
           customMessage.value = '';
           customMessageContainer.style.display = 'none';
           charCount.textContent = '0';
-          plateDigits.value = '';
           userPhone.value = '';
           selectedMethod = 'push';
         } else {
@@ -1257,8 +1325,8 @@
         showToast(error.message || 'Failed to send notification', 'error');
       })
       .finally(() => {
-        confirmBtn.innerHTML = 'Send Notification';
-        confirmBtn.disabled = false;
+        methodConfirmBtn.innerHTML = 'Continue';
+        methodConfirmBtn.disabled = false;
       });
     }
 

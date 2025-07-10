@@ -838,11 +838,11 @@ def send_notification(request, qr_id):
                 notification_method = data.get('notification_method', 'push')
                 
                 # Validate plate digits
-                if plate_digits != vehicle_data.get('registrationNumber', '')[-4:]:
-                    return JsonResponse({
-                        'status': 'error', 
-                        'message': 'The plate number does not match. Please check you are entering the right plate number.'
-                    })
+                # if plate_digits != vehicle_data.get('registrationNumber', '')[-4:]:
+                #     return JsonResponse({
+                #         'status': 'error', 
+                #         'message': 'The plate number does not match. Please check you are entering the right plate number.'
+                #     })
                 
                 # Handle different notification methods
                 if notification_method == 'push':

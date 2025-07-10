@@ -43,13 +43,14 @@
       --card-bg: #FFFFFF;
       --border-color: #E0E0E0;
       --shadow-color: rgba(0, 0, 0, 0.1);
+      --input-text-color: #212121; /* Added for input text */
     }
 
     .dark-theme {
       --primary-color: #FFD700; /* Gold/Yellow remains same */
       --primary-dark: #FFC000;
       --primary-light: #333300;
-      --secondary-color: #E0E0E0; /* Light Gray */
+      --secondary-color: #000000; /* Black remains same for buttons */
       --accent-color: #FFEA00;
       --success-color: #4CAF50;
       --danger-color: #F44336;
@@ -63,6 +64,7 @@
       --card-bg: #1E1E1E;
       --border-color: #333333;
       --shadow-color: rgba(0, 0, 0, 0.3);
+      --input-text-color: #FFFFFF; /* White text in dark mode */
     }
 
     body {
@@ -166,6 +168,7 @@
       display: none;
       text-align: center;
       padding: 20px;
+      color: var(--text-color); /* Added to ensure text visibility */
     }
     
     .feedback-thankyou-icon {
@@ -291,6 +294,7 @@
       justify-content: center;
       gap: 8px;
       min-width: 120px;
+      color: var(--secondary-color); /* Ensure button text is black */
     }
 
     .welcome-btn-primary {
@@ -417,13 +421,14 @@
       font-size: 1rem;
       transition: all 0.3s;
       background-color: var(--card-bg);
-      color: var(--text-color);
+      color: var(--input-text-color); /* Use specific variable for input text */
     }
 
     .form-control:focus {
       border-color: var(--primary-color);
       box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
       background-color: var(--card-bg);
+      color: var(--input-text-color);
     }
 
     .btn {
@@ -439,6 +444,7 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
+      color: var(--secondary-color); /* Ensure button text is black */
     }
 
     .btn-primary {
@@ -562,6 +568,7 @@
       justify-content: center;
       gap: 8px;
       min-width: 120px;
+      color: var(--secondary-color); /* Ensure button text is black */
     }
 
     .confirmation-btn-primary {
@@ -984,8 +991,8 @@
           <div class="feedback-thankyou-icon">
             <i class="bi bi-emoji-smile-fill"></i>
           </div>
-          <h4>Thank You for Your Feedback!</h4>
-          <p>We appreciate you taking the time to help us improve.</p>
+          <h4 style="color: var(--text-color);">Thank You for Your Feedback!</h4>
+          <p style="color: var(--text-color);">We appreciate you taking the time to help us improve.</p>
         </div>
         
         <button class="btn btn-primary" id="continueBtn" style="margin-top: 20px;">
