@@ -32,6 +32,10 @@
                     <li class="nav-item {% if request.path == '/manage_users/' %}active{% endif %}">
                         <a class="nav-link" href="{% url 'manage_users' %}">Manage Users</a>
                     </li>
+                    <!-- In your navigation bar -->
+                    <li class="nav-item {% if request.path == '/manage-qrs/' %}active{% endif %}">
+                        <a class="nav-link" href="{% url 'manage_qrs' %}">Manage QR Codes</a>
+                    </li>
                     <li class="nav-item {% if request.path == '/view-orders/' %}active{% endif %}">
                         <a class="nav-link" href="{% url 'view_orders' %}">View Orders</a>
                     </li>

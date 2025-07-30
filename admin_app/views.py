@@ -1208,3 +1208,297 @@ def send_feedback_notify(request):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
+def manage_qrs(request):
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('login')
+
+    db = firestore.client()
+    
+    try:
+        qrs_ref = db.collection('qrcodes')
+        query = qrs_ref
+        
+        # Handle filters
+        status_filter = request.GET.get('status')
+        search_query = request.GET.get('search')
+        
+        if status_filter == 'active':
+            query = query.where('isAssigned', '==', True)
+        elif status_filter == 'inactive':
+            query = query.where('isAssigned', '==', False)
+        
+        qr_docs = query.stream()
+        
+        # Prepare QR data with additional user/vehicle info
+        qrs = []
+        user_cache = {}
+        vehicle_cache = {}
+        
+        for doc in qr_docs:
+            qr_data = doc.to_dict() or {}
+            qr_data['doc_id'] = doc.id
+            
+            # Generate QR code image for each QR
+            qr = qrcode.QRCode(
+                version=3,
+                error_correction=qrcode.constants.ERROR_CORRECT_H,
+                box_size=4,
+                border=2,
+            )
+            qr.add_data(f"{settings.BASE_DOMAIN}/send-notification/{doc.id}/")
+            qr.make(fit=True)
+            qr_img = qr.make_image(fill_color="#dcbd1f", back_color="#161416")
+            
+            # Convert to base64
+            buffer = BytesIO()
+            qr_img.save(buffer, format="PNG")
+            qr_data['qr_code_base64'] = base64.b64encode(buffer.getvalue()).decode('utf-8')
+            
+            # Add user info if assigned
+            if qr_data.get('isAssigned') and qr_data.get('userID'):
+                if qr_data['userID'] not in user_cache:
+                    try:
+                        user_doc = db.collection('users').document(qr_data['userID']).get()
+                        user_cache[qr_data['userID']] = user_doc.to_dict() if user_doc.exists else None
+                    except:
+                        user_cache[qr_data['userID']] = None
+                
+                qr_data['user'] = user_cache[qr_data['userID']]
+            
+            # Add vehicle info if assigned
+            if qr_data.get('isAssigned') and qr_data.get('vehicleID'):
+                if qr_data['vehicleID'] not in vehicle_cache:
+                    try:
+                        vehicle_doc = db.collection('vehicles').document(qr_data['vehicleID']).get()
+                        vehicle_cache[qr_data['vehicleID']] = vehicle_doc.to_dict() if vehicle_doc.exists else None
+                    except:
+                        vehicle_cache[qr_data['vehicleID']] = None
+                
+                qr_data['vehicle'] = vehicle_cache[qr_data['vehicleID']]
+            
+            # Apply search filter if provided
+            if search_query:
+                search_lower = search_query.lower()
+                matches = False
+                
+                # Check QR ID
+                if search_lower in doc.id.lower():
+                    matches = True
+                
+                # Check user info
+                if not matches and qr_data.get('user'):
+                    user = qr_data['user']
+                    if (search_lower in user.get('fullName', '').lower() or 
+                        search_lower in user.get('emailAddress', '').lower() or 
+                        search_lower in user.get('contactNumber', '').lower()):
+                        matches = True
+                
+                # Check vehicle info
+                if not matches and qr_data.get('vehicle'):
+                    vehicle = qr_data['vehicle']
+                    if (search_lower in vehicle.get('ownerFullName', '').lower() or 
+                        search_lower in vehicle.get('registrationNumber', '').lower() or 
+                        search_lower in vehicle.get('make', '').lower() or 
+                        search_lower in vehicle.get('model', '').lower()):
+                        matches = True
+                
+                if not matches:
+                    continue
+            
+            qrs.append(qr_data)
+            
+        if not qrs:
+            messages.info(request, 'No QR codes found matching your criteria')
+
+    except Exception as e:
+        messages.error(request, f'Error accessing database: {str(e)}')
+        qrs = []
+
+    # Handle export request
+    if request.GET.get('export') == 'pdf':
+        return export_qrs_pdf(request, qrs)
+    
+    return render(request, 'manage_qrs.html', {
+        'qrs': qrs,
+        'status_filter': status_filter,
+        'search_query': search_query,
+        'messages': get_message_list(request)
+    })
+
+def export_qrs_pdf(request, qrs):
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="qr_codes_export.pdf"'
+
+    from reportlab.lib.pagesizes import letter
+    from reportlab.platypus import SimpleDocTemplate, Image, Paragraph, Spacer, Table, TableStyle, PageBreak
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.units import inch
+    import pytz
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter,
+                          leftMargin=0.5*inch,
+                          rightMargin=0.5*inch,
+                          topMargin=0.5*inch,
+                          bottomMargin=0.5*inch)
+    elements = []
+
+    # Styles
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        name="Title",
+        fontSize=14,
+        alignment=1,  # CENTER
+        fontName="Helvetica-Bold",
+        spaceAfter=12,
+        textColor=colors.black
+    )
+    
+    date_style = ParagraphStyle(
+        name="Date",
+        fontSize=10,
+        alignment=1,  # CENTER
+        fontName="Helvetica",
+        spaceAfter=6,
+        textColor=colors.darkgrey
+    )
+    
+    # Title and date
+    elements.append(Paragraph("QR Codes Export", title_style))
+    ist = pytz.timezone('Asia/Kolkata')
+    current_datetime = datetime.datetime.now(ist)
+    date_str = current_datetime.strftime("%B %d, %Y at %I:%M %p")
+    elements.append(Paragraph(f"Generated on: {date_str}", date_style))
+    
+    if request.GET.get('status'):
+        elements.append(Paragraph(f"Status: {request.GET.get('status').capitalize()}", date_style))
+    if request.GET.get('search'):
+        elements.append(Paragraph(f"Search: {request.GET.get('search')}", date_style))
+    
+    elements.append(Spacer(1, 24))
+
+    # QR code display settings
+    qr_size = 1.5 * inch
+    items_per_row = 3
+    items_per_page = items_per_row * 3  # 3 rows per page
+    
+    for i, qr in enumerate(qrs):
+        if i > 0 and i % items_per_page == 0:
+            elements.append(PageBreak())
+        
+        if i % items_per_row == 0:
+            # Start new row
+            row_data = []
+        
+        # Create QR image
+        qr_img = Image(BytesIO(base64.b64decode(qr['qr_code_base64'])),
+                      width=qr_size, height=qr_size)
+        
+        # Create info text
+        info = [
+            Paragraph(f"<b>QR ID:</b> {qr['doc_id'][:12]}...", styles['Normal']),
+            Paragraph(f"<b>Status:</b> {'Active' if qr.get('isAssigned') else 'Inactive'}", styles['Normal'])
+        ]
+        
+        if qr.get('user'):
+            info.append(Paragraph(f"<b>User:</b> {qr['user'].get('fullName', '')}", styles['Normal']))
+        
+        if qr.get('vehicle'):
+            info.append(Paragraph(f"<b>Vehicle:</b> {qr['vehicle'].get('registrationNumber', '')}", styles['Normal']))
+        
+        # Combine QR and info
+        item_table = Table([
+            [qr_img],
+            info
+        ], colWidths=qr_size)
+        
+        row_data.append(item_table)
+        
+        if (i + 1) % items_per_row == 0 or i == len(qrs) - 1:
+            # Complete the row
+            row_table = Table([row_data], colWidths=[qr_size]*len(row_data))
+            row_table.setStyle(TableStyle([
+                ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                ('LEFTPADDING', (0,0), (-1,-1), 10),
+                ('RIGHTPADDING', (0,0), (-1,-1), 10),
+            ]))
+            elements.append(row_table)
+            elements.append(Spacer(1, 12))
+
+    doc.build(elements)
+    pdf = buffer.getvalue()
+    buffer.close()
+    response.write(pdf)
+    return response
+
+def regenerate_qr(request, qr_id):
+    if not request.session.get('admin'):
+        messages.error(request, 'Admin access required')
+        return redirect('login')
+
+    db = firestore.client()
+    
+    try:
+        # Get existing QR code data
+        qr_ref = db.collection('qrcodes').document(qr_id)
+        qr_doc = qr_ref.get()
+        
+        if not qr_doc.exists:
+            messages.error(request, 'QR code not found')
+            return redirect('manage_qrs')
+        
+        # Generate the same QR code again
+        qr = qrcode.QRCode(
+            version=3,
+            error_correction=qrcode.constants.ERROR_CORRECT_H,
+            box_size=12,
+            border=2,
+        )
+        qr.add_data(f"{settings.BASE_DOMAIN}/send-notification/{qr_id}/")
+        qr.make(fit=True)
+        qr_img = qr.make_image(fill_color="#dcbd1f", back_color="#161416")
+
+        # Open template image
+        template_path = os.path.join(settings.BASE_DIR, 'sudo_admin', 'static', 'images', 'qr_template.jpg')
+        if not os.path.exists(template_path):
+            messages.error(request, 'Template image not found')
+            return redirect('manage_qrs')
+
+        template_img = PILImage.open(template_path).convert('RGB')
+        template_width, template_height = template_img.size
+
+        # Calculate QR code size to occupy 75% of template height
+        qr_size = (int(template_height * 0.75), int(template_height * 0.75))
+
+        # Position QR code
+        left_margin = int(template_width * 0.07)
+        qr_position = (
+            left_margin,
+            (template_height - qr_size[1]) // 2
+        )
+
+        # Paste QR code onto template
+        qr_img = qr_img.resize(qr_size, PILImage.Resampling.LANCZOS)
+        final_img = template_img.copy()
+        final_img.paste(qr_img, qr_position)
+
+        # Save to buffer
+        buffer = BytesIO()
+        final_img.save(buffer, format="PNG")
+        qr_code_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        
+        # Prepare response
+        response = HttpResponse(content_type='image/png')
+        response['Content-Disposition'] = f'attachment; filename="qr_{qr_id}.png"'
+        response.write(buffer.getvalue())
+        buffer.close()
+        
+        return response
+
+    except Exception as e:
+        messages.error(request, f'Error regenerating QR code: {str(e)}')
+        return redirect('manage_qrs')

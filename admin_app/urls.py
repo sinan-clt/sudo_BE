@@ -17,5 +17,7 @@ urlpatterns = [
     path('send-notification-final/<str:qr_id>/', views.send_notification, name='send_notification'),
     path('send-feedback/', views.send_feedback, name='send_feedback'),
     path('send-feedback-notify/', views.send_feedback_notify, name='send_feedback_notify'),
+    path('manage-qrs/', views.manage_qrs, name='manage_qrs'),
+    path('regenerate-qr/<str:qr_id>/', views.regenerate_qr, name='regenerate_qr'),
 
 ]
