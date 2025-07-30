@@ -91,8 +91,14 @@ def dashboard(request):
     if not request.session.get('admin'):
         return redirect('login')
 
+    ADMIN_EMAIL = "w@w.com"  # Define the admin email to exclude
     users_ref = db.collection('users')
-    users = list(users_ref.stream()) 
+    
+    # Get all users except admin by email check
+    users = [
+        doc for doc in users_ref.stream()
+        if doc.to_dict().get('emailAddress') != ADMIN_EMAIL
+    ]
 
     context = {
         'total_users': len(users),
@@ -385,16 +391,20 @@ def manage_users(request):
 
     # Connect to Firestore
     db = firestore.client()
+    ADMIN_EMAIL = "w@w.com"  # Define the admin email to exclude
     
     try:
         # Get all documents from the users collection
         users_ref = db.collection('users')
         docs = users_ref.stream()
         
-        # Prepare user data with document IDs
+        # Prepare user data with document IDs, excluding admin by email
         users = []
         for doc in docs:
             user_data = doc.to_dict() or {}
+            if user_data.get('emailAddress') == ADMIN_EMAIL:  # Skip admin account
+                continue
+                
             user_data['doc_id'] = doc.id
             users.append(user_data)
             
@@ -410,6 +420,12 @@ def manage_users(request):
         if 'delete_selected' in request.POST:
             return handle_bulk_delete(request, users_ref)
         elif 'delete_single' in request.POST:
+            # Prevent deletion by email check
+            user_id = request.POST.get('user_id')
+            user_doc = users_ref.document(user_id).get()
+            if user_doc.exists and user_doc.to_dict().get('emailAddress') == ADMIN_EMAIL:
+                messages.error(request, 'Cannot delete admin account')
+                return redirect('manage_users')
             return handle_single_delete(request, users_ref)
 
     return render(request, 'manage_users.html', {
