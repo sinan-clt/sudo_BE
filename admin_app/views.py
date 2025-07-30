@@ -87,22 +87,70 @@ def admin_logout(request):
     return redirect('login')
 
 
+from datetime import datetime, timedelta
+import pytz
+
 def dashboard(request):
     if not request.session.get('admin'):
         return redirect('login')
 
-    ADMIN_EMAIL = "w@w.com"  # Define the admin email to exclude
-    users_ref = db.collection('users')
+    ADMIN_EMAIL = "w@w.com"
+    ist = pytz.timezone('Asia/Kolkata')
+    today = datetime.now(ist).date()
+    week_ago = today - timedelta(days=7)
     
-    # Get all users except admin by email check
+    # Users data
+    users_ref = db.collection('users')
     users = [
         doc for doc in users_ref.stream()
         if doc.to_dict().get('emailAddress') != ADMIN_EMAIL
     ]
-
+    
+    # Orders data
+    orders_ref = db.collection('orders')
+    all_orders = [doc.to_dict() for doc in orders_ref.stream()]
+    
+    # Filter orders by date and status
+    today_orders = []
+    week_orders = []
+    status_counts = {status: 0 for status in STATUS_MAPPING.keys()}
+    
+    for order in all_orders:
+        order_date = order.get('timestamp')
+        if hasattr(order_date, 'date'):
+            order_date = order_date.date()
+        elif isinstance(order_date, str):
+            order_date = datetime.strptime(order_date, "%B %d, %Y at %I:%M:%S %p UTC%z").date()
+        
+        status = order.get('orderStatus', 0)
+        status_counts[status] = status_counts.get(status, 0) + 1
+        
+        if order_date == today:
+            today_orders.append(order)
+        if order_date >= week_ago:
+            week_orders.append(order)
+    
+    # Payment data
+    total_earnings = sum(order.get('amount', 0) for order in all_orders if order.get('paymentStatus') == 'paid')
+    today_earnings = sum(order.get('amount', 0) for order in today_orders if order.get('paymentStatus') == 'paid')
+    
+    # QR Codes data
+    qr_ref = db.collection('qrcodes')
+    all_qr = [doc.to_dict() for doc in qr_ref.stream()]
+    active_qr = sum(1 for qr in all_qr if qr.get('isAssigned', False))
+    
     context = {
         'total_users': len(users),
-        'users': users
+        'total_orders': len(all_orders),
+        'today_orders': len(today_orders),
+        'week_orders': len(week_orders),
+        'status_counts': status_counts,
+        'total_earnings': total_earnings,
+        'today_earnings': today_earnings,
+        'total_qr': len(all_qr),
+        'active_qr': active_qr,
+        'inactive_qr': len(all_qr) - active_qr,
+        'STATUS_MAPPING': STATUS_MAPPING,
     }
     return render(request, 'dashboard.html', context)
 
@@ -1502,3 +1550,268 @@ def regenerate_qr(request, qr_id):
     except Exception as e:
         messages.error(request, f'Error regenerating QR code: {str(e)}')
         return redirect('manage_qrs')
+    
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle, PageBreak
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+from io import BytesIO
+import qrcode
+import base64
+import pytz
+from datetime import datetime
+
+def print_orders(request):
+    order_ids = request.GET.get('order_ids', '').split(',')
+    if not order_ids:
+        return HttpResponse("No orders selected", status=400)
+    
+    try:
+        # Fetch selected orders
+        orders = []
+        for order_id in order_ids:
+            order_ref = db.collection('orders').document(order_id)
+            order = order_ref.get().to_dict()
+            if order:
+                order['id'] = order_id
+                orders.append(order)
+        
+        if not orders:
+            return HttpResponse("No orders found", status=404)
+        
+        # Create PDF
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = 'inline; filename="orders.pdf"'
+        
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter,
+                              leftMargin=0.5*inch,
+                              rightMargin=0.5*inch,
+                              topMargin=0.5*inch,
+                              bottomMargin=0.5*inch)
+        
+        elements = []
+        
+        # Styles
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'Title',
+            parent=styles['Heading1'],
+            fontSize=18,
+            alignment=1,
+            spaceAfter=20
+        )
+        heading_style = ParagraphStyle(
+            'Heading',
+            parent=styles['Heading2'],
+            fontSize=12,
+            textColor=colors.darkblue,
+            spaceAfter=10
+        )
+        normal_style = styles['Normal']
+        
+        # Title
+        elements.append(Paragraph("Order Details", title_style))
+        
+        # Date
+        ist = pytz.timezone('Asia/Kolkata')
+        current_datetime = datetime.now(ist)
+        date_time_string = current_datetime.strftime("%A, %B %d, %Y - %I:%M %p")
+        elements.append(Paragraph(f"Generated on: {date_time_string}", normal_style))
+        elements.append(Spacer(1, 20))
+        
+        # Add each order
+        for order in orders:
+            # Order header
+            elements.append(Paragraph(f"Order ID: {order.get('id', '')}", heading_style))
+            
+            # Customer info
+            customer_data = [
+                ['Customer Name:', order.get('fullName', '')],
+                ['Mobile:', order.get('mobile', '')],
+                ['Alternate Mobile:', order.get('mobileNumber', '')],
+            ]
+            customer_table = Table(customer_data, colWidths=[1.5*inch, 4*inch])
+            customer_table.setStyle(TableStyle([
+                ('FONTNAME', (0,0), (-1,-1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0,0), (-1,-1), 10),
+                ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ]))
+            elements.append(customer_table)
+            elements.append(Spacer(1, 10))
+            
+            # Product info
+            product_data = [
+                ['Product:', order.get('selectedItem', '')],
+                ['Quantity:', order.get('quantity', '')],
+                ['Amount:', f"₹{order.get('amount', '')}"],
+            ]
+            product_table = Table(product_data, colWidths=[1.5*inch, 4*inch])
+            elements.append(product_table)
+            elements.append(Spacer(1, 10))
+            
+            # Vehicle info
+            vehicle_data = [
+                ['Vehicle Category:', order.get('vehicleCategory', '')],
+                ['Vehicle Number:', order.get('vehicleNumber', '')],
+            ]
+            vehicle_table = Table(vehicle_data, colWidths=[1.5*inch, 4*inch])
+            elements.append(vehicle_table)
+            elements.append(Spacer(1, 10))
+            
+            # Address
+            address = order.get('address', {})
+            address_text = f"{address.get('houseNumber', '')}, {address.get('street', '')}\n"
+            address_text += f"{address.get('landmark', '')}\n"
+            address_text += f"{address.get('city', '')}, {address.get('state', '')}\n"
+            address_text += f"{address.get('pincode', '')}, {address.get('country', '')}"
+            
+            elements.append(Paragraph("Delivery Address:", normal_style))
+            elements.append(Paragraph(address_text, normal_style))
+            elements.append(Spacer(1, 10))
+            
+            # Payment and status
+            status_data = [
+                ['Payment Status:', order.get('paymentStatus', '')],
+                ['Order Status:', STATUS_MAPPING.get(order.get('orderStatus', 0), "Unknown")],
+                ['Order Date:', order.get('timestamp', '').strftime("%d %b %Y %I:%M %p") if hasattr(order.get('timestamp', ''), 'strftime') else ''],
+            ]
+            status_table = Table(status_data, colWidths=[1.5*inch, 4*inch])
+            elements.append(status_table)
+            
+            # Add page break if not last order
+            if order != orders[-1]:
+                elements.append(PageBreak())
+        
+        doc.build(elements)
+        pdf = buffer.getvalue()
+        buffer.close()
+        response.write(pdf)
+        return response
+    
+    except Exception as e:
+        return HttpResponse(f"Error generating PDF: {str(e)}", status=500)
+
+def export_orders_with_qr(request):
+    if request.method != 'POST':
+        return HttpResponse("Method not allowed", status=405)
+    
+    order_ids = request.POST.getlist('order_ids')
+    if not order_ids:
+        return HttpResponse("No orders selected", status=400)
+    
+    try:
+        # Fetch selected orders
+        orders = []
+        for order_id in order_ids:
+            order_ref = db.collection('orders').document(order_id)
+            order = order_ref.get().to_dict()
+            if order:
+                order['id'] = order_id
+                orders.append(order)
+        
+        if not orders:
+            return HttpResponse("No orders found", status=404)
+        
+        # Create PDF with QR codes
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="orders_with_qr.pdf"'
+        
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter,
+                              leftMargin=0.5*inch,
+                              rightMargin=0.5*inch,
+                              topMargin=0.5*inch,
+                              bottomMargin=0.5*inch)
+        
+        elements = []
+        
+        # Styles
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'Title',
+            parent=styles['Heading1'],
+            fontSize=18,
+            alignment=1,
+            spaceAfter=20
+        )
+        heading_style = ParagraphStyle(
+            'Heading',
+            parent=styles['Heading2'],
+            fontSize=12,
+            textColor=colors.darkblue,
+            spaceAfter=10
+        )
+        normal_style = styles['Normal']
+        
+        # Title
+        elements.append(Paragraph("Order Details with QR Codes", title_style))
+        
+        # Date
+        ist = pytz.timezone('Asia/Kolkata')
+        current_datetime = datetime.now(ist)
+        date_time_string = current_datetime.strftime("%A, %B %d, %Y - %I:%M %p")
+        elements.append(Paragraph(f"Generated on: {date_time_string}", normal_style))
+        elements.append(Spacer(1, 20))
+        
+        # Add each order with QR code
+        for order in orders:
+            # Generate QR code
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=4,
+            )
+            qr_data = f"Order ID: {order['id']}\nCustomer: {order.get('fullName', '')}\nProduct: {order.get('selectedItem', '')}"
+            qr.add_data(qr_data)
+            qr.make(fit=True)
+            
+            qr_img = qr.make_image(fill_color="black", back_color="white")
+            qr_buffer = BytesIO()
+            qr_img.save(qr_buffer, format="PNG")
+            qr_buffer.seek(0)
+            
+            # Create table with order info and QR code
+            order_data = [
+                [
+                    # Order info
+                    Table([
+                        [Paragraph("Order Details", heading_style)],
+                        [Paragraph(f"Order ID: {order.get('id', '')}", normal_style)],
+                        [Paragraph(f"Customer: {order.get('fullName', '')}", normal_style)],
+                        [Paragraph(f"Product: {order.get('selectedItem', '')}", normal_style)],
+                        [Paragraph(f"Quantity: {order.get('quantity', '')}", normal_style)],
+                        [Paragraph(f"Amount: ₹{order.get('amount', '')}", normal_style)],
+                        [Paragraph(f"Status: {STATUS_MAPPING.get(order.get('orderStatus', 0), 'Unknown')}", normal_style)],
+                    ], colWidths=[3.5*inch]),
+                    
+                    # QR code
+                    Image(qr_buffer, width=1.5*inch, height=1.5*inch)
+                ]
+            ]
+            
+            order_table = Table(order_data, colWidths=[3.5*inch, 1.5*inch])
+            order_table.setStyle(TableStyle([
+                ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                ('ALIGN', (1,0), (1,0), 'RIGHT'),
+                ('BOX', (0,0), (-1,-1), 1, colors.grey),
+                ('INNERGRID', (0,0), (-1,-1), 0.5, colors.lightgrey),
+            ]))
+            
+            elements.append(order_table)
+            elements.append(Spacer(1, 20))
+            
+            # Add page break if not last order
+            if order != orders[-1]:
+                elements.append(PageBreak())
+        
+        doc.build(elements)
+        pdf = buffer.getvalue()
+        buffer.close()
+        response.write(pdf)
+        return response
+    
+    except Exception as e:
+        return HttpResponse(f"Error generating PDF: {str(e)}", status=500)
