@@ -384,25 +384,21 @@ def register_user(request):
 
 
 def manage_users(request):
-    # Ensure the user is an admin
     if not request.session.get('admin'):
         messages.error(request, 'Admin access required')
         return redirect('login')
 
-    # Connect to Firestore
     db = firestore.client()
-    ADMIN_EMAIL = "w@w.com"  # Define the admin email to exclude
+    ADMIN_EMAIL = "w@w.com"
     
     try:
-        # Get all documents from the users collection
         users_ref = db.collection('users')
         docs = users_ref.stream()
         
-        # Prepare user data with document IDs, excluding admin by email
         users = []
         for doc in docs:
             user_data = doc.to_dict() or {}
-            if user_data.get('emailAddress') == ADMIN_EMAIL:  # Skip admin account
+            if user_data.get('emailAddress') == ADMIN_EMAIL:
                 continue
                 
             user_data['doc_id'] = doc.id
@@ -415,24 +411,35 @@ def manage_users(request):
         messages.error(request, f'Error accessing database: {str(e)}')
         users = []
 
-    # Handle deletion requests
     if request.method == "POST":
         if 'delete_selected' in request.POST:
             return handle_bulk_delete(request, users_ref)
         elif 'delete_single' in request.POST:
-            # Prevent deletion by email check
             user_id = request.POST.get('user_id')
             user_doc = users_ref.document(user_id).get()
             if user_doc.exists and user_doc.to_dict().get('emailAddress') == ADMIN_EMAIL:
                 messages.error(request, 'Cannot delete admin account')
                 return redirect('manage_users')
             return handle_single_delete(request, users_ref)
+        elif 'toggle_status' in request.POST:
+            user_id = request.POST.get('user_id')
+            user_ref = users_ref.document(user_id)
+            user_ref.update({'enabled': not user_ref.get().to_dict().get('enabled', False)})
+            messages.success(request, 'User status updated')
+            return redirect('manage_users')
+        elif 'update_user' in request.POST:
+            user_id = request.POST.get('user_id')
+            users_ref.document(user_id).update({
+                'fullName': request.POST.get('fullName'),
+                'city': request.POST.get('city')
+            })
+            messages.success(request, 'User updated successfully')
+            return redirect('manage_users')
 
     return render(request, 'manage_users.html', {
         'users': users,
         'messages': get_message_list(request)
     })
-
 
 def handle_bulk_delete(request, users_ref):
     selected_user_ids = request.POST.getlist('selected_users')
