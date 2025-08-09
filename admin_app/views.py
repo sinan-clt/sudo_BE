@@ -68,7 +68,7 @@ def admin_login(request):
                 # Role is not 1, show an access message
                 messages.error(request, "You don't have access to login.")
                 break
-            elif user_data.get('emailAddress') == email and password == '123456': 
+            elif user_data.get('emailAddress') == email and password == 'Akhil@123': 
                 # Role is 1, user is allowed to login
                 request.session['admin'] = True
                 return redirect('dashboard')
