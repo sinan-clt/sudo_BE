@@ -64,12 +64,14 @@ def admin_login(request):
         for user in user_ref:
             user_data = user.to_dict()
             user_found = True
+            
+            # Check if user has role 1
             if user_data.get('role') != 1:
-                # Role is not 1, show an access message
-                messages.error(request, "You don't have access to login.")
+                messages.error(request, "You don't have permission to access admin panel.")
                 break
-            elif user_data.get('emailAddress') == email and password == 'Akhil@123': 
-                # Role is 1, user is allowed to login
+            
+            # For role 1 users, verify password (you might want to use proper password hashing)
+            if user_data.get('emailAddress') == email and user_data.get('password') == password:
                 request.session['admin'] = True
                 return redirect('dashboard')
             else:
@@ -80,7 +82,6 @@ def admin_login(request):
             messages.error(request, 'No user found with this email.')
     
     return render(request, 'login.html')
-
 
 def admin_logout(request):
     request.session.flush()
