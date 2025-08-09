@@ -66,7 +66,7 @@ def admin_login(request):
             user_found = True
             
             # Check if user has role 1
-            if user_data.get('role') != 1:
+            if user_data.get('roleId') != 1:
                 messages.error(request, "You don't have permission to access admin panel.")
                 break
             
