@@ -15,12 +15,9 @@
                 </button>
                 <button id="deselectAllBtn" class="btn btn-outline-secondary btn-sm">
                     <i class="far fa-square"></i> Deselect All
-                </button>
-                <button id="printSelectedBtn" class="btn btn-primary btn-sm">
-                    <i class="fas fa-file-pdf"></i> Print Selected
-                </button>
+                </button> &nbsp;
                 <button id="exportWithQrBtn" class="btn btn-success btn-sm">
-                    <i class="fas fa-qrcode"></i> Export with QR
+                    <i class="fas fa-file-pdf"></i> Export Invoice
                 </button>
             </div>
         </div>
@@ -50,61 +47,61 @@
                     <!-- Checkbox Column -->
                     <td><input type="checkbox" class="order-checkbox" data-order-id="{{ entry.order.id }}"></td>
                     
-                    <!-- Order ID Column -->
+                    <!-- Order ID Column - Full ID displayed -->
                     <td class="text-nowrap">
-                        <div class="fw-bold">{{ entry.order.id|truncatechars:12 }}</div>
-                        <small class="text-muted">Payment Ref: {{ entry.order.paymentOrderId|truncatechars:10 }}</small>
+                        <div class="fw-bold font-monospace small">{{ entry.order.id }}</div>
+                        <small class="text-muted">Ref: {{ entry.order.paymentOrderId|truncatechars:10 }}</small>
                     </td>
                     
                     <!-- Customer Column -->
                     <td>
                         <div class="fw-bold">{{ entry.order.fullName }}</div>
-                        <div>{{ entry.order.mobile }}</div>
-                        {% if entry.order.mobileNumber != entry.order.mobile %}
-                        <div>{{ entry.order.mobileNumber }}</div>
+                        <div class="text-muted small">{{ entry.order.mobile }}</div>
+                        {% if entry.order.mobileNumber and entry.order.mobileNumber != entry.order.mobile %}
+                        <div class="text-muted small">{{ entry.order.mobileNumber }}</div>
                         {% endif %}
                     </td>
                     
                     <!-- Product Column -->
                     <td>
                         <div class="fw-bold text-capitalize">{{ entry.order.selectedItem }}</div>
-                        <div>Qty: {{ entry.order.quantity }}</div>
-                        <div>₹{{ entry.order.amount }}</div>
+                        <div class="text-muted small">Qty: {{ entry.order.quantity }}</div>
+                        <div class="text-success">₹{{ entry.order.amount }}</div>
                     </td>
                     
                     <!-- Vehicle Column -->
                     <td>
-                        <div>{{ entry.order.vehicleCategory }}</div>
+                        <div class="text-muted small">{{ entry.order.vehicleCategory }}</div>
                         <div class="fw-bold">{{ entry.order.vehicleNumber }}</div>
                     </td>
                     
-                    <!-- Address Column (Expanded Details) -->
+                    <!-- Address Column -->
                     <td>
-                        <div class="address-details">
+                        <div class="address-details small">
                             <div>{{ entry.order.address.houseNumber }}</div>
                             <div>{{ entry.order.address.street }}</div>
-                            <div>{{ entry.order.address.landmark }}</div>
+                            <div class="text-muted">{{ entry.order.address.landmark }}</div>
                             <div>{{ entry.order.address.city }}, {{ entry.order.address.state }}</div>
-                            <div>{{ entry.order.address.pincode }}, {{ entry.order.address.country }}</div>
+                            <div>{{ entry.order.address.pincode }}</div>
                         </div>
                     </td>
                     
                     <!-- Payment Column -->
                     <td>
                         {% if entry.order.paymentStatus == "paid" %}
-                            <span class="badge bg-success rounded-pill payment-badge">Paid</span>
+                            <span class="badge bg-success rounded-pill">Paid</span>
                         {% else %}
-                            <span class="badge bg-warning rounded-pill payment-badge">{{ entry.order.paymentStatus|default:"Pending" }}</span>
+                            <span class="badge bg-warning rounded-pill">{{ entry.order.paymentStatus|default:"Pending" }}</span>
                         {% endif %}
                         <div class="mt-1 small text-muted">
-                            {{ entry.order.paymentId|truncatechars:10 }}...
+                            {{ entry.order.paymentId|truncatechars:10 }}
                         </div>
                     </td>
                     
                     <!-- Date Column -->
                     <td class="text-nowrap">
-                        {{ entry.order.timestamp|date:"d M Y" }}<br>
-                        <small>{{ entry.order.timestamp|date:"H:i" }}</small>
+                        <div>{{ entry.order.timestamp|date:"d M Y" }}</div>
+                        <small class="text-muted">{{ entry.order.timestamp|date:"H:i" }}</small>
                     </td>
                     
                     <!-- Status Column -->
@@ -130,7 +127,6 @@
                             </span>
                         </div>
                     </td>
-                    
                 </tr>
                 {% endfor %}
             </tbody>
@@ -155,18 +151,27 @@
 <style>
     .address-details div {
         margin-bottom: 2px;
+        line-height: 1.2;
     }
     .table td {
         vertical-align: middle;
+        padding: 8px;
     }
     .status-dropdown {
         min-width: 120px;
+        font-size: 12px;
     }
     .order-checkbox {
         transform: scale(1.2);
     }
     #masterCheckbox {
         transform: scale(1.2);
+    }
+    .font-monospace {
+        font-family: 'Courier New', monospace;
+    }
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
     }
 </style>
 
@@ -180,19 +185,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const orderId = this.dataset.orderId;
             const newStatus = this.value;
             
-            // Show loading state
             const originalValue = this.value;
             this.disabled = true;
             
-            // Create the data to send
             const data = {
                 orderId: orderId,
                 newStatus: newStatus
             };
             
-            console.log('Sending update:', data); // Debug
-            
-            // Send AJAX request to update status
             fetch('/admin/update_order_status/', {
                 method: 'POST',
                 headers: {
@@ -201,32 +201,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify(data)
             })
-            .then(response => {
-                console.log('Response status:', response.status); // Debug
-                return response.json().catch(() => {
-                    throw new Error('Invalid JSON response from server');
-                });
-            })
+            .then(response => response.json().catch(() => {
+                throw new Error('Invalid JSON response from server');
+            }))
             .then(data => {
-                console.log('Response data:', data); // Debug
                 if (data.success) {
-                    // Update the status badge
                     const statusBadge = this.closest('td').querySelector('.status-badge');
                     statusBadge.textContent = data.status_text;
                     
-                    // Update badge color based on new status
                     const statusColors = {
-                        0: 'bg-secondary',
-                        1: 'bg-info',
-                        2: 'bg-primary',
-                        3: 'bg-success',
-                        4: 'bg-danger',
-                        5: 'bg-warning',
-                        6: 'bg-dark',
-                        7: 'bg-warning'
+                        0: 'bg-secondary', 1: 'bg-info', 2: 'bg-primary',
+                        3: 'bg-success', 4: 'bg-danger', 5: 'bg-warning',
+                        6: 'bg-dark', 7: 'bg-warning'
                     };
                     
-                    // Remove all status classes and add the correct one
                     statusBadge.className = 'badge rounded-pill status-badge ' + 
                                           (statusColors[newStatus] || 'bg-dark');
                     
@@ -237,8 +225,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(error => {
-                console.error('Update error:', error);
-                showToast('Error updating status: ' + error.message, 'error');
+                showToast('Error updating status', 'error');
                 this.value = originalValue;
             })
             .finally(() => {
@@ -271,21 +258,6 @@ document.addEventListener('DOMContentLoaded', function() {
         masterCheckbox.checked = false;
     });
     
-    // Print selected orders
-    document.getElementById('printSelectedBtn').addEventListener('click', function() {
-        const selectedOrders = Array.from(document.querySelectorAll('.order-checkbox:checked'))
-            .map(checkbox => checkbox.dataset.orderId);
-            
-        if (selectedOrders.length === 0) {
-            showToast('Please select at least one order', 'error');
-            return;
-        }
-        
-        // Open print page in new tab
-        const url = `/print_orders/?order_ids=${selectedOrders.join(',')}`;
-        window.open(url, '_blank');
-    });
-    
     // Export with QR codes
     document.getElementById('exportWithQrBtn').addEventListener('click', function() {
         const selectedOrders = Array.from(document.querySelectorAll('.order-checkbox:checked'))
@@ -296,10 +268,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Submit form to export with QR codes
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = '/export_orders_with_qr/';
+        form.action = '/admin/export_orders_with_qr/';
         
         const csrfToken = document.createElement('input');
         csrfToken.type = 'hidden';

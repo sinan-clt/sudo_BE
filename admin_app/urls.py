@@ -10,7 +10,6 @@ urlpatterns = [
     path('manage-users/', views.manage_users, name='manage_users'),
     path('view-orders/', views.view_orders, name='view_orders'),
     path('update_order_status/', views.update_order_status, name='update_order_status'),
-    path('print_orders/', views.print_orders, name='print_orders'),
     path('export_orders_with_qr/', views.export_orders_with_qr, name='export_orders_with_qr'),
     path('logout/', views.admin_logout, name='logout'),
     path('register-external-user/', views.external_user_registration, name='external_register'),

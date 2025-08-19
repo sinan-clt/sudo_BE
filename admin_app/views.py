@@ -1586,137 +1586,6 @@ import base64
 import pytz
 from datetime import datetime
 
-def print_orders(request):
-    order_ids = request.GET.get('order_ids', '').split(',')
-    if not order_ids:
-        return HttpResponse("No orders selected", status=400)
-    
-    try:
-        # Fetch selected orders
-        orders = []
-        for order_id in order_ids:
-            order_ref = db.collection('orders').document(order_id)
-            order = order_ref.get().to_dict()
-            if order:
-                order['id'] = order_id
-                orders.append(order)
-        
-        if not orders:
-            return HttpResponse("No orders found", status=404)
-        
-        # Create PDF
-        response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = 'inline; filename="orders.pdf"'
-        
-        buffer = BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=letter,
-                              leftMargin=0.5*inch,
-                              rightMargin=0.5*inch,
-                              topMargin=0.5*inch,
-                              bottomMargin=0.5*inch)
-        
-        elements = []
-        
-        # Styles
-        styles = getSampleStyleSheet()
-        title_style = ParagraphStyle(
-            'Title',
-            parent=styles['Heading1'],
-            fontSize=18,
-            alignment=1,
-            spaceAfter=20
-        )
-        heading_style = ParagraphStyle(
-            'Heading',
-            parent=styles['Heading2'],
-            fontSize=12,
-            textColor=colors.darkblue,
-            spaceAfter=10
-        )
-        normal_style = styles['Normal']
-        
-        # Title
-        elements.append(Paragraph("Order Details", title_style))
-        
-        # Date
-        ist = pytz.timezone('Asia/Kolkata')
-        current_datetime = datetime.now(ist)
-        date_time_string = current_datetime.strftime("%A, %B %d, %Y - %I:%M %p")
-        elements.append(Paragraph(f"Generated on: {date_time_string}", normal_style))
-        elements.append(Spacer(1, 20))
-        
-        # Add each order
-        for order in orders:
-            # Order header
-            elements.append(Paragraph(f"Order ID: {order.get('id', '')}", heading_style))
-            
-            # Customer info
-            customer_data = [
-                ['Customer Name:', order.get('fullName', '')],
-                ['Mobile:', order.get('mobile', '')],
-                ['Alternate Mobile:', order.get('mobileNumber', '')],
-            ]
-            customer_table = Table(customer_data, colWidths=[1.5*inch, 4*inch])
-            customer_table.setStyle(TableStyle([
-                ('FONTNAME', (0,0), (-1,-1), 'Helvetica-Bold'),
-                ('FONTSIZE', (0,0), (-1,-1), 10),
-                ('VALIGN', (0,0), (-1,-1), 'TOP'),
-            ]))
-            elements.append(customer_table)
-            elements.append(Spacer(1, 10))
-            
-            # Product info
-            product_data = [
-                ['Product:', order.get('selectedItem', '')],
-                ['Quantity:', order.get('quantity', '')],
-                ['Amount:', f"₹{order.get('amount', '')}"],
-            ]
-            product_table = Table(product_data, colWidths=[1.5*inch, 4*inch])
-            elements.append(product_table)
-            elements.append(Spacer(1, 10))
-            
-            # Vehicle info
-            vehicle_data = [
-                ['Vehicle Category:', order.get('vehicleCategory', '')],
-                ['Vehicle Number:', order.get('vehicleNumber', '')],
-            ]
-            vehicle_table = Table(vehicle_data, colWidths=[1.5*inch, 4*inch])
-            elements.append(vehicle_table)
-            elements.append(Spacer(1, 10))
-            
-            # Address
-            address = order.get('address', {})
-            address_text = f"{address.get('houseNumber', '')}, {address.get('street', '')}\n"
-            address_text += f"{address.get('landmark', '')}\n"
-            address_text += f"{address.get('city', '')}, {address.get('state', '')}\n"
-            address_text += f"{address.get('pincode', '')}, {address.get('country', '')}"
-            
-            elements.append(Paragraph("Delivery Address:", normal_style))
-            elements.append(Paragraph(address_text, normal_style))
-            elements.append(Spacer(1, 10))
-            
-            # Payment and status
-            status_data = [
-                ['Payment Status:', order.get('paymentStatus', '')],
-                ['Order Status:', STATUS_MAPPING.get(order.get('orderStatus', 0), "Unknown")],
-                ['Order Date:', order.get('timestamp', '').strftime("%d %b %Y %I:%M %p") if hasattr(order.get('timestamp', ''), 'strftime') else ''],
-            ]
-            status_table = Table(status_data, colWidths=[1.5*inch, 4*inch])
-            elements.append(status_table)
-            
-            # Add page break if not last order
-            if order != orders[-1]:
-                elements.append(PageBreak())
-        
-        doc.build(elements)
-        pdf = buffer.getvalue()
-        buffer.close()
-        response.write(pdf)
-        return response
-    
-    except Exception as e:
-        return HttpResponse(f"Error generating PDF: {str(e)}", status=500)
-
 def export_orders_with_qr(request):
     if request.method != 'POST':
         return HttpResponse("Method not allowed", status=405)
@@ -1730,102 +1599,215 @@ def export_orders_with_qr(request):
         orders = []
         for order_id in order_ids:
             order_ref = db.collection('orders').document(order_id)
-            order = order_ref.get().to_dict()
-            if order:
+            order_doc = order_ref.get()
+            if order_doc.exists:
+                order = order_doc.to_dict()
                 order['id'] = order_id
                 orders.append(order)
         
         if not orders:
             return HttpResponse("No orders found", status=404)
         
-        # Create PDF with QR codes
+        # Create PDF with professional invoice design
         response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = 'attachment; filename="orders_with_qr.pdf"'
+        response['Content-Disposition'] = 'attachment; filename="invoices.pdf"'
         
         buffer = BytesIO()
+        # Set smaller margins to utilize more space
         doc = SimpleDocTemplate(buffer, pagesize=letter,
-                              leftMargin=0.5*inch,
-                              rightMargin=0.5*inch,
-                              topMargin=0.5*inch,
-                              bottomMargin=0.5*inch)
+                              leftMargin=0.4*inch,
+                              rightMargin=0.4*inch,
+                              topMargin=0.4*inch,
+                              bottomMargin=0.4*inch)
         
         elements = []
         
         # Styles
         styles = getSampleStyleSheet()
+        
+        # Custom styles
         title_style = ParagraphStyle(
             'Title',
             parent=styles['Heading1'],
             fontSize=18,
             alignment=1,
-            spaceAfter=20
+            textColor=colors.HexColor("#2c3e50"),
+            spaceAfter=10,
+            fontName='Helvetica-Bold'
         )
-        heading_style = ParagraphStyle(
-            'Heading',
-            parent=styles['Heading2'],
+        
+        company_style = ParagraphStyle(
+            'Company',
+            parent=styles['Normal'],
             fontSize=12,
-            textColor=colors.darkblue,
-            spaceAfter=10
+            alignment=1,
+            textColor=colors.HexColor("#2980b9"),
+            spaceAfter=3,
+            fontName='Helvetica-Bold'
         )
-        normal_style = styles['Normal']
         
-        # Title
-        elements.append(Paragraph("Order Details with QR Codes", title_style))
+        info_style = ParagraphStyle(
+            'Info',
+            parent=styles['Normal'],
+            fontSize=9,
+            alignment=1,
+            spaceAfter=2
+        )
         
-        # Date
-        ist = pytz.timezone('Asia/Kolkata')
-        current_datetime = datetime.now(ist)
-        date_time_string = current_datetime.strftime("%A, %B %d, %Y - %I:%M %p")
-        elements.append(Paragraph(f"Generated on: {date_time_string}", normal_style))
-        elements.append(Spacer(1, 20))
+        normal_style = ParagraphStyle(
+            'Normal',
+            parent=styles['Normal'],
+            fontSize=9,
+            spaceAfter=2
+        )
         
-        # Add each order with QR code
+        bold_style = ParagraphStyle(
+            'Bold',
+            parent=styles['Normal'],
+            fontSize=10,
+            fontName='Helvetica-Bold',
+            spaceAfter=3
+        )
+        
+        footer_style = ParagraphStyle(
+            'Footer',
+            parent=styles['Normal'],
+            fontSize=8,
+            alignment=1,
+            textColor=colors.grey,
+            spaceAfter=0
+        )
+        
+        # Add each invoice
         for order in orders:
-            # Generate QR code
-            qr = qrcode.QRCode(
-                version=1,
-                error_correction=qrcode.constants.ERROR_CORRECT_L,
-                box_size=10,
-                border=4,
-            )
-            qr_data = f"Order ID: {order['id']}\nCustomer: {order.get('fullName', '')}\nProduct: {order.get('selectedItem', '')}"
-            qr.add_data(qr_data)
-            qr.make(fit=True)
+            # Invoice Header - Centered with better styling
+            elements.append(Paragraph("INVOICE", title_style))
             
-            qr_img = qr.make_image(fill_color="black", back_color="white")
-            qr_buffer = BytesIO()
-            qr_img.save(qr_buffer, format="PNG")
-            qr_buffer.seek(0)
+            # Company Info - Centered with better spacing
+            elements.append(Paragraph("SUDO", company_style))
+            elements.append(Paragraph("Street Address, City, State", info_style))
+            elements.append(Paragraph("Phone: +9120000000000X", info_style))
+            elements.append(Paragraph("Email: info@sudo.com", info_style))
+            elements.append(Spacer(1, 12))
             
-            # Create table with order info and QR code
-            order_data = [
+            # Invoice Details - Properly aligned in a table
+            ist = pytz.timezone('Asia/Kolkata')
+            current_date = datetime.now(ist)
+            
+            invoice_data = Table([
                 [
-                    # Order info
-                    Table([
-                        [Paragraph("Order Details", heading_style)],
-                        [Paragraph(f"Order ID: {order.get('id', '')}", normal_style)],
-                        [Paragraph(f"Customer: {order.get('fullName', '')}", normal_style)],
-                        [Paragraph(f"Product: {order.get('selectedItem', '')}", normal_style)],
-                        [Paragraph(f"Quantity: {order.get('quantity', '')}", normal_style)],
-                        [Paragraph(f"Amount: ₹{order.get('amount', '')}", normal_style)],
-                        [Paragraph(f"Status: {STATUS_MAPPING.get(order.get('orderStatus', 0), 'Unknown')}", normal_style)],
-                    ], colWidths=[3.5*inch]),
-                    
-                    # QR code
-                    Image(qr_buffer, width=1.5*inch, height=1.5*inch)
+                    Paragraph(f"<b>INVOICE #:</b> {order['id']}", normal_style),
+                    Paragraph(f"<b>DATE:</b> {current_date.strftime('%B %d, %Y')}", normal_style),
                 ]
-            ]
+            ], colWidths=[2.5*inch, 2.0*inch, 1.5*inch])
             
-            order_table = Table(order_data, colWidths=[3.5*inch, 1.5*inch])
-            order_table.setStyle(TableStyle([
-                ('VALIGN', (0,0), (-1,-1), 'TOP'),
-                ('ALIGN', (1,0), (1,0), 'RIGHT'),
-                ('BOX', (0,0), (-1,-1), 1, colors.grey),
-                ('INNERGRID', (0,0), (-1,-1), 0.5, colors.lightgrey),
+            invoice_data.setStyle(TableStyle([
+                ('VALIGN', (0,0), (-1,0), 'TOP'),
+                ('BOTTOMPADDING', (0,0), (-1,0), 10),
             ]))
             
-            elements.append(order_table)
-            elements.append(Spacer(1, 20))
+            elements.append(invoice_data)
+            elements.append(Spacer(1, 12))
+            
+            # Bill To and Ship To in two columns - Proper alignment
+            address = order.get('address', {})
+            
+            # Create address tables with proper structure
+            bill_to_table = Table([
+                [Paragraph("BILL TO:", bold_style)],
+                [Paragraph(order.get('fullName', ''), normal_style)],
+                [Paragraph(order.get('mobile', ''), normal_style)],
+                [Paragraph(f"{address.get('houseNumber', '')} {address.get('street', '')}", normal_style)],
+                [Paragraph(f"{address.get('city', '')}, {address.get('state', '')}", normal_style)],
+                [Paragraph(f"PIN: {address.get('pincode', '')}", normal_style)],
+            ], colWidths=[2.8*inch])
+            
+            ship_to_table = Table([
+                [Paragraph("SHIP TO:", bold_style)],
+                [Paragraph(order.get('fullName', ''), normal_style)],
+                [Paragraph(f"{address.get('houseNumber', '')} {address.get('street', '')}", normal_style)],
+                [Paragraph(f"{address.get('city', '')}, {address.get('state', '')}", normal_style)],
+                [Paragraph(f"PIN: {address.get('pincode', '')}", normal_style)],
+            ], colWidths=[2.8*inch])
+            
+            # Combine both address tables side by side
+            address_table = Table([
+                [bill_to_table, ship_to_table]
+            ], colWidths=[2.8*inch, 2.8*inch])
+            
+            address_table.setStyle(TableStyle([
+                ('VALIGN', (0,0), (-1,0), 'TOP'),
+            ]))
+            
+            elements.append(address_table)
+            elements.append(Spacer(1, 15))
+            
+            # Items Table - Proper column widths and alignment
+            items_header = Table([
+                ['ITEM #', 'DESCRIPTION', 'QTY', 'PRICE', 'TOTAL']
+            ], colWidths=[0.7*inch, 3.2*inch, 0.7*inch, 0.9*inch, 0.9*inch])
+            
+            items_header.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#2c3e50")),
+                ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+                ('ALIGN', (0,0), (-1,0), 'CENTER'),
+                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0,0), (-1,0), 9),
+                ('BOTTOMPADDING', (0,0), (-1,0), 6),
+                ('TOPPADDING', (0,0), (-1,0), 4),
+            ]))
+            elements.append(items_header)
+            
+            # Order Item - Make sure quantity is included
+            amount = float(order.get('amount', 0))
+            quantity = order.get('quantity', 1)
+            
+            item_data = Table([
+                ['1', order.get('selectedItem', '').upper(), str(quantity), f"{amount/quantity:.2f}", f"{amount:.2f}"]
+            ], colWidths=[0.7*inch, 3.2*inch, 0.7*inch, 0.9*inch, 0.9*inch])
+            
+            item_data.setStyle(TableStyle([
+                ('ALIGN', (0,0), (-1,0), 'CENTER'),
+                ('ALIGN', (3,0), (4,0), 'RIGHT'),
+                ('FONTNAME', (0,0), (-1,0), 'Helvetica'),
+                ('FONTSIZE', (0,0), (-1,0), 9),
+                ('BOTTOMPADDING', (0,0), (-1,0), 6),
+                ('TOPPADDING', (0,0), (-1,0), 4),
+                ('GRID', (0,0), (-1,0), 0.5, colors.lightgrey),
+            ]))
+            elements.append(item_data)
+            elements.append(Spacer(1, 12))
+            
+            # Grand Total - Proper alignment and label
+            grand_total_data = Table([
+                ['', '', '', Paragraph("<b>GRAND TOTAL:</b>", bold_style), Paragraph(f"<b>{amount:.2f}</b>", bold_style)]
+            ], colWidths=[0.7*inch, 3.2*inch, 0.7*inch, 1.2*inch, 0.9*inch])
+            
+            grand_total_data.setStyle(TableStyle([
+                ('ALIGN', (3,0), (4,0), 'RIGHT'),
+                ('VALIGN', (3,0), (4,0), 'MIDDLE'),
+                ('FONTSIZE', (3,0), (4,0), 10),
+                ('BOTTOMPADDING', (0,0), (-1,0), 8),
+                ('TOPPADDING', (0,0), (-1,0), 5),
+            ]))
+            elements.append(grand_total_data)
+            elements.append(Spacer(1, 15))
+            
+            # Footer - Better spacing
+            footer_text = "www.sudo.com | info@sudo.com | +9120000000000X"
+            footer = Paragraph(footer_text, footer_style)
+            elements.append(footer)
+            
+            # Company name at bottom
+            elements.append(Spacer(1, 5))
+            elements.append(Paragraph("SUDO", ParagraphStyle(
+                'FooterCompany',
+                parent=styles['Normal'],
+                fontSize=10,
+                alignment=1,
+                textColor=colors.HexColor("#2980b9"),
+                fontName='Helvetica-Bold'
+            )))
             
             # Add page break if not last order
             if order != orders[-1]:
@@ -1838,4 +1820,7 @@ def export_orders_with_qr(request):
         return response
     
     except Exception as e:
+        import traceback
+        print(f"Error: {str(e)}")
+        print(traceback.format_exc())
         return HttpResponse(f"Error generating PDF: {str(e)}", status=500)
