@@ -1011,6 +1011,11 @@ def send_notification(request, qr_id):
     except Exception as e:
         return render(request, 'error.html', {'error': str(e)})
 
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+import json
+
 # Define status mapping
 STATUS_MAPPING = {
     0: "Pending",
@@ -1050,32 +1055,46 @@ def view_orders(request):
 
     except Exception as e:
         return render(request, 'view_orders.html', {'error': str(e)})
-    
+
+@csrf_exempt
 def update_order_status(request):
     if request.method == 'POST':
         try:
-            order_id = request.POST.get('orderId')
-            new_status = int(request.POST.get('newStatus'))
+            # Get the raw POST data
+            if request.body:
+                try:
+                    data = json.loads(request.body)
+                    order_id = data.get('orderId')
+                    new_status = int(data.get('newStatus'))
+                except json.JSONDecodeError:
+                    # Fallback to form data
+                    order_id = request.POST.get('orderId')
+                    new_status = int(request.POST.get('newStatus', 0))
+            else:
+                order_id = request.POST.get('orderId')
+                new_status = int(request.POST.get('newStatus', 0))
 
             if not order_id:
                 return JsonResponse({'success': False, 'error': 'Order ID is required'})
+
+            print(f"Updating order {order_id} to status {new_status}")  # Debug
 
             # Update ONLY the order status in the database
             order_ref = db.collection('orders').document(order_id)
             order_ref.update({
                 'orderStatus': new_status,
-                'status_text': STATUS_MAPPING.get(new_status, "Unknown")
             })
 
             return JsonResponse({
                 'success': True,
                 'status_text': STATUS_MAPPING.get(new_status, "Unknown")
             })
+            
         except Exception as e:
+            print(f"Error in update_order_status: {str(e)}")  # Debug
             return JsonResponse({'success': False, 'error': str(e)})
+    
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
-
-
 def external_user_registration(request):
     if request.method == 'POST':
         # Get form data

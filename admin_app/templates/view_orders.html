@@ -172,7 +172,80 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Status update functionality (existing code...)
+    // Status update functionality
+    const statusDropdowns = document.querySelectorAll('.status-dropdown');
+    
+    statusDropdowns.forEach(dropdown => {
+        dropdown.addEventListener('change', function() {
+            const orderId = this.dataset.orderId;
+            const newStatus = this.value;
+            
+            // Show loading state
+            const originalValue = this.value;
+            this.disabled = true;
+            
+            // Create the data to send
+            const data = {
+                orderId: orderId,
+                newStatus: newStatus
+            };
+            
+            console.log('Sending update:', data); // Debug
+            
+            // Send AJAX request to update status
+            fetch('/admin/update_order_status/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                console.log('Response status:', response.status); // Debug
+                return response.json().catch(() => {
+                    throw new Error('Invalid JSON response from server');
+                });
+            })
+            .then(data => {
+                console.log('Response data:', data); // Debug
+                if (data.success) {
+                    // Update the status badge
+                    const statusBadge = this.closest('td').querySelector('.status-badge');
+                    statusBadge.textContent = data.status_text;
+                    
+                    // Update badge color based on new status
+                    const statusColors = {
+                        0: 'bg-secondary',
+                        1: 'bg-info',
+                        2: 'bg-primary',
+                        3: 'bg-success',
+                        4: 'bg-danger',
+                        5: 'bg-warning',
+                        6: 'bg-dark',
+                        7: 'bg-warning'
+                    };
+                    
+                    // Remove all status classes and add the correct one
+                    statusBadge.className = 'badge rounded-pill status-badge ' + 
+                                          (statusColors[newStatus] || 'bg-dark');
+                    
+                    showToast('Status updated successfully', 'success');
+                } else {
+                    showToast('Error: ' + data.error, 'error');
+                    this.value = originalValue;
+                }
+            })
+            .catch(error => {
+                console.error('Update error:', error);
+                showToast('Error updating status: ' + error.message, 'error');
+                this.value = originalValue;
+            })
+            .finally(() => {
+                this.disabled = false;
+            });
+        });
+    });
     
     // Checkbox functionality
     const masterCheckbox = document.getElementById('masterCheckbox');
