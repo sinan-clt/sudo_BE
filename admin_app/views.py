@@ -194,6 +194,8 @@ def get_font(font_size=20):
         print(f"Font loading error: {str(e)}")
         return ImageFont.load_default()
 
+from django.utils.timezone import now  # Add this import at the top of your file
+
 def generate_qr(request):
     if not request.session.get('admin'):
         return redirect('login')
@@ -252,10 +254,10 @@ def generate_qr(request):
                     final_img.save(buffer, format="PNG")
                     qr_code_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
                     
-                    # Save to Firestore
+                    # Save to Firestore - FIXED THE DATETIME ISSUE
                     qr_data_firestore = {
                         'createdBy': 'admin',
-                        'createdDateTime': datetime.datetime.now(tz=datetime.timezone.utc),
+                        'createdDateTime': now(),
                         'isAssigned': False,
                         'qrId': qr_id,
                         'vehicleID': '',
@@ -366,7 +368,7 @@ def download_qr_pdf(request):
     # Title and date (only on first page)
     elements.append(Paragraph("Generated QR Codes", title_style))
     ist = pytz.timezone('Asia/Kolkata')
-    current_datetime = datetime.datetime.now(ist)
+    current_datetime = now().astimezone(ist)
     date_time_string = current_datetime.strftime("%A, %B %d, %Y - %I:%M %p")
     elements.append(Paragraph(f"Created on: {date_time_string}", date_style))
     elements.append(Spacer(1, 24))
